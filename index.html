@@ -225,7 +225,7 @@ function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:nul
 
 </script>
 <script>
-const VERSAO='2.5.1';
+const VERSAO='2.5.2';
 /* ---------- utilidades ---------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -644,7 +644,7 @@ function mostrarLido(){ const R=S.lido, box=$('#lido'); const data=R.de||R.emiss
 async function salvarLido(card,cod,bt){ const cfg=cfgDe(cod), R=S.lido, f=n=>card.querySelector(`[name="${n}"]`);
   const data=f('data').value, h=f('hora').value, tipo=f('tipo').value, lid=(cfg.lideres||[]).find(l=>l.id===f('lider').value);
   if(!data||!h){toast('Informe data e horário');return} if(!lid){toast('Escolha o líder responsável');f('lider').focus();return}
-  if(data>hoje()){toast('A data não pode ser futura');return}
+  if(data>hojeReal()){toast('A data não pode ser futura');return}
   const exist=S.dias[cod+'_'+data]?.parciais?.[h.replace(':','')]; if(exist&&!(await confirmar(`Já existe parcial às ${h} de ${dataBR(data)}. Substituir?`,'Substituir'))) return;
   const itens=R.postos[cod].itens.map(i=>({s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100,k:i.k}));
   const nomes={},setores={}; R.postos[cod].itens.forEach(i=>nomes[i.c]=i.n); Object.entries(R.setores).forEach(([k,v])=>setores[k]=v);
@@ -653,8 +653,8 @@ async function salvarLido(card,cod,bt){ const cfg=cfgDe(cod), R=S.lido, f=n=>car
   bt.disabled=true; bt.textContent='Salvando…';
   try{ const d=await Store.salvarParcial(cod,data,p,nomes,setores); S.dias[cod+'_'+data]=d; montarCurva(cod);
     toast('Parcial salva'); bt.textContent='Salva ✓'; await fontes();
-    mostrarImagem(card.querySelector('.saida'),imgParcial(cfgMes(cfg,data),cod,data,p),`parcial_${cod}_${data}_${h.replace(':','')}.png`,textoParcial(cfgMes(cfg,data),data,p),emailDe(cfg));
-  }catch(e){ bt.disabled=false; bt.textContent='Salvar e gerar imagem'; toast(e?.code==='invalid_argument'?'Você não tem permissão para salvar. Peça acesso de colaborador ao app.':'Não salvou. Confira a internet e tente de novo.') } }
+    try{ mostrarImagem(card.querySelector('.saida'),imgParcial(cfgMes(cfg,data),cod,data,p),`parcial_${cod}_${data}_${h.replace(':','')}.png`,textoParcial(cfgMes(cfg,data),data,p),emailDe(cfg)); }catch(e2){ console.error(e2); toast('Parcial salva, mas a imagem falhou: '+(e2?.message||e2)) }
+  }catch(e){ console.error(e); bt.disabled=false; bt.textContent='Salvar e gerar imagem'; toast(e?.code==='invalid_argument'?'Você não tem permissão para salvar. Peça acesso de colaborador ao app.':(e?.msg?'Não salvou: '+e.msg:'Não salvou. Confira a internet e tente de novo.')) } }
 function mostrarImagem(box,canvas,nome,texto,email){ const url=canvas.toDataURL('image/png'); const tl=texto?texto.replace(/\*/g,''):'';
   box.innerHTML=`<img class="imgout" src="${url}" alt="Imagem da parcial"><p class="small muted">No celular, toque e segure na imagem para salvar ou mandar no WhatsApp.</p><div class="row">${DL?'<button class="btn sm" data-b>Baixar imagem</button>':`<a class="btn sm" download="${esc(nome)}" href="${url}">Baixar imagem</a>`}${S.mode==='api'?'<button class="btn sm orange" data-env>Enviar por e-mail e Teams</button>':''}${navigator.share?'<button class="btn sm alt" data-c>Compartilhar imagem</button>':''}</div>
   ${texto?`<div class="row" style="margin-top:8px"><a class="btn sm alt" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}">WhatsApp</a><a class="btn sm alt" target="_blank" rel="noopener" href="mailto:${esc(email||'')}?subject=${encodeURIComponent(tl.split('\n')[0])}&body=${encodeURIComponent(tl)}">E-mail${email?' da pista':''}</a><button class="btn sm alt" data-t>Copiar para o Teams</button></div><p class="small muted">WhatsApp e e-mail levam o resumo em texto: anexe a imagem baixada. No Teams, cole o texto e a imagem.</p>`:''}`;
