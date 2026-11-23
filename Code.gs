@@ -2,7 +2,7 @@
  *  Conta apoio.escadabr · App: https://apoio-escada.github.io/parciais-venda/
  *  1ª vez: rodar configurar() no editor e autorizar. Depois Implantar › App da Web (Executar como: Eu · Acesso: Qualquer pessoa).
  */
-const VERSAO='1.0.0';
+const VERSAO='1.1.0';
 const ABAS={Config:['Posto','JSON','PinHash','AtualizadoEm'],Parciais:['Id','Posto','Data','Hora','Tipo','Lider','JSON','Em'],Vendedores:['Id','Posto','Data','Hora','Tipo','Lider','JSON','Em'],Marcas:['Id','Posto','Data','JSON','Em'],Fotos:['Id','Img','Em'],Log:['Quando','Acao','Posto','Detalhe']};
 const PR=()=>PropertiesService.getScriptProperties();
 function ss_(){ const id=PR().getProperty('PLANILHA_ID'); if(id) return SpreadsheetApp.openById(id);
@@ -37,7 +37,15 @@ function out_(o){ return ContentService.createTextOutput(JSON.stringify(o)).setM
 function acao_(b){ const A=b.action;
   if(A==='postos'){ const all=cfgs_(); return Object.keys(all).filter(k=>all[k].pin).map(k=>({codigo:k,nome:all[k].cfg.nome||''})); }
   if(A==='primeiroAcesso') return !PR().getProperty('ADMIN_HASH');
+  if(A==='esqueciSenha'){ const c=CacheService.getScriptCache(); if(c.get('COD_ESPERA')) throw erro_('Aguarde 2 minutos para pedir outro código.'); const cod=String(Math.floor(100000+Math.random()*900000));
+    c.put('COD_ADMIN',JSON.stringify({h:hash_(cod),n:0}),1800); c.put('COD_ESPERA','1',120); const para=PR().getProperty('ADMIN_EMAIL')||'apoio.escada@pichilau.com.br';
+    MailApp.sendEmail({to:para,subject:'Parciais de Venda – código para redefinir a senha',body:'Seu código: '+cod+'\n\nVale por 30 minutos e só pode ser usado uma vez. Se você não pediu, ignore este e-mail.'}); log_('codigo_enviado','',''); return para.replace(/^(.{2}).*(@.*)$/,'$1***$2'); }
+  if(A==='redefinirSenha'){ const c=CacheService.getScriptCache(), j=JSON.parse(c.get('COD_ADMIN')||'null'); if(!j) throw erro_('Código vencido ou não pedido. Peça outro.');
+    if(j.n>=5){ c.remove('COD_ADMIN'); throw erro_('Muitas tentativas. Peça outro código.'); } if(hash_(String(b.codigo||'').trim())!==j.h){ j.n++; c.put('COD_ADMIN',JSON.stringify(j),1800); throw erro_('Código errado.'); }
+    if(String(b.nova||'').length<6) throw erro_('A senha precisa ter 6 caracteres ou mais.'); PR().setProperty('ADMIN_HASH',hash_(b.nova)); c.remove('COD_ADMIN'); log_('senha_redefinida','',''); return true; }
   const a=auth_(b);
+  if(A==='adminEmail'){ admin_(a); if(b.email) PR().setProperty('ADMIN_EMAIL',String(b.email).trim()); return PR().getProperty('ADMIN_EMAIL')||'apoio.escada@pichilau.com.br'; }
+  if(A==='trocarSenha'){ admin_(a); if(String(b.nova||'').length<6) throw erro_('A senha precisa ter 6 caracteres ou mais.'); PR().setProperty('ADMIN_HASH',hash_(b.nova)); log_('senha_trocada','',''); return true; }
   if(A==='login') return a;
   if(A==='cfgs'){ const all=cfgs_(), o={}; Object.keys(all).forEach(k=>{ if(a.admin||k===a.posto){ const c=all[k].cfg; c.temPin=!!all[k].pin; c.temTeams=!!PR().getProperty('TEAMS_'+k); o[k]=c; } }); return o; }
   const lock=LockService.getScriptLock(); lock.waitLock(20000);
