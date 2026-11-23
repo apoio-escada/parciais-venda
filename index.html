@@ -225,7 +225,7 @@ function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:nul
 
 </script>
 <script>
-const VERSAO='2.5.0';
+const VERSAO='2.5.1';
 /* ---------- utilidades ---------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -352,7 +352,7 @@ async function vInicio(){ const el=$('#v-inicio');
   const cfg=cfgMes(cfgDe(S.posto),hoje()), d=S.dias[S.posto+'_'+hoje()];
   const parc=parciaisOrd(d); const sel=(S.parcSel&&d?.parciais[S.parcSel])||parc[parc.length-1];
   let h=`<div class="row" style="margin:2px 2px 10px;align-items:flex-end"><label class="f" style="margin:0;max-width:190px">Ver o dia<input type="date" id="iniData" value="${hoje()}" max="${hojeReal()}"></label>${S.dataRef?'<button class="btn alt sm" id="iniHoje">Voltar para hoje</button>':''}</div>`;
-  if(!sel){ h+=`<div class="card vazio"><h3>Sem parcial hoje</h3><p>Anexe o relatório do B2Click para ver como o dia está indo.</p><a class="btn orange" href="#enviar">Enviar parcial</a></div>`; }
+  if(!sel){ h+=`<div class="card vazio"><h3>Sem parcial hoje</h3><p>Anexe o relatório do B2Click para ver como o dia está indo.</p>${(()=>{const u=Object.values(S.dias).filter(x=>x.posto===S.posto&&x.data<hoje()&&Object.keys(x.parciais||{}).length).sort((x,y)=>x.data<y.data?-1:1).pop();return u?`<button class="btn sm" id="iniUlt" data-d="${u.data}" style="margin:0 0 10px">Ver a última parcial (${u.data.slice(8)}/${u.data.slice(5,7)})</button><br>`:''})()}<a class="btn orange" href="#enviar">Enviar parcial</a></div>`; }
   else {
     const v=calc(cfg,sel.itens).v; const fim=(sel.tipo==='fech'&&sel.turno===cfg.fechamentos.length-1)?1440:hmin(sel.h);
     const rc=somaG(cfg,v,'comb')/metaG(cfg,'comb',c=>share(S.posto,c.id,fim)), rm=somaG(cfg,v,'mix')/metaG(cfg,'mix',c=>share(S.posto,c.id,fim));
@@ -365,7 +365,7 @@ async function vInicio(){ const el=$('#v-inicio');
   h+=`<h2>Posto: realizado × meta</h2><div id="painelPosto"></div><h2>Líderes</h2><div class="chips" role="group" aria-label="Período">${[['hoje','Hoje'],['7','7 dias'],['mes','Este mês']].map(([k,t])=>`<button class="chip" data-dp="${k}" aria-pressed="${S.dashPer===k}">${t}</button>`).join('')}</div><div id="dashLid"></div><h2>Dia e mês da equipe</h2><div id="painelEquipe"></div><h2>Ranking dos vendedores</h2><div id="rankVend"></div><p class="small muted" style="text-align:center;margin:20px 8px 4px">Nossa missão: ser uma experiência feliz, conveniente e segura no seu caminho.</p>`;
   el.innerHTML=h;
   const mudaData=v=>{ S.dataRef=(!v||v>=hojeReal())?null:v; DATA_REF=S.dataRef; S.parcSel=null; carregadoRecente={}; vInicio() };
-  if($('#iniData')) $('#iniData').onchange=e=>mudaData(e.target.value); if($('#iniHoje')) $('#iniHoje').onclick=()=>mudaData(null);
+  if($('#iniData')) $('#iniData').onchange=e=>mudaData(e.target.value); if($('#iniHoje')) $('#iniHoje').onclick=()=>mudaData(null); if($('#iniUlt')) $('#iniUlt').onclick=e=>mudaData(e.currentTarget.dataset.d);
   $$('.lt',el).forEach(b=>b.onclick=()=>{S.parcSel=b.dataset.k;vInicio()});
   $$('[data-dp]',el).forEach(b=>b.onclick=()=>{S.dashPer=b.dataset.dp;vInicio()});
   if(sel) $('#btImgHoje').onclick=async()=>{await fontes();mostrarImagem($('#imgHoje'),imgParcial(cfg,S.posto,d.data,sel),`parcial_${S.posto}_${d.data}_${sel.h.replace(':','')}.png`,textoParcial(cfg,d.data,sel),emailDe(cfg))};
