@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parciais de Venda – Postos Pichilau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --paper:#EEF1F5; --card:#FFFFFF; --ink:#16202C; --muted:#5A6677; --line:#D5DBE3;
+  --blue:#13509B; --blue-soft:#E3ECF8; --orange:#E98300; --orange-soft:#FDEFD9;
+  --ok:#1C8F4A; --ok-soft:#DFF3E7; --bad:#C9352A; --bad-soft:#FBE3E0; --tank:#E7EBF0;
+  --fd:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --fb:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark; --paper:#0E151E; --card:#17212D; --ink:#E7ECF2; --muted:#9AA7B7; --line:#2B3747;
+  --blue:#6FA6EC; --blue-soft:#1B2C44; --orange:#FFA43A; --orange-soft:#3A2A14;
+  --ok:#43C67A; --ok-soft:#15301F; --bad:#FF6F62; --bad-soft:#3A1A17; --tank:#243142; } }
+:root[data-theme="dark"]{ color-scheme:dark; --paper:#0E151E; --card:#17212D; --ink:#E7ECF2; --muted:#9AA7B7; --line:#2B3747;
+  --blue:#6FA6EC; --blue-soft:#1B2C44; --orange:#FFA43A; --orange-soft:#3A2A14;
+  --ok:#43C67A; --ok-soft:#15301F; --bad:#FF6F62; --bad-soft:#3A1A17; --tank:#243142; }
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 var(--fb);-webkit-font-smoothing:antialiased;padding-bottom:84px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--blue)}
+button,input,select{font:inherit;color:inherit}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--blue);color:#fff;padding:10px 16px 12px;display:flex;align-items:center;gap:12px}
+.top h1{font:700 22px/1 var(--fd);margin:0;letter-spacing:.2px;flex:1;min-width:0}
+.top h1 small{display:block;font:500 13px/1.2 var(--fb);opacity:.85;margin-top:3px}
+.top select{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:7px 8px;max-width:48vw}
+.top select option{color:#16202C}
+main{max-width:880px;margin:0 auto;padding:14px 14px 0}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 10px;color:var(--muted);text-decoration:none;font:600 13px/1 var(--fb)}
+.tabs a svg{width:24px;height:24px}
+.tabs a[aria-current="page"]{color:var(--blue)}
+.tabs a[aria-current="page"] svg{stroke:var(--orange)}
+section.v{display:none}
+section.v.on{display:block}
+h2{font:700 24px/1.1 var(--fd);margin:18px 2px 10px}
+h3{font:600 19px/1.15 var(--fd);margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;text-decoration:none}
+.btn.alt{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
+.btn.orange{background:var(--orange);color:#1b1206}
+.btn.danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
+.btn.sm{padding:7px 11px;font-size:14px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.chip{flex:none;border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-weight:600;font-size:14px;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+label.f{display:block;font-size:14px;font-weight:600;color:var(--muted);margin-bottom:10px}
+label.f input,label.f select{display:block;width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font-weight:500}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 10px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:15px}
+table.t th,table.t td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.t th:first-child,table.t td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+table.t thead th{font:600 14px/1.1 var(--fd);color:var(--muted);letter-spacing:.2px;vertical-align:bottom}
+table.t tr.sub td{font-weight:700;background:var(--blue-soft)}
+table.t tr.sub td:first-child{background:var(--blue-soft)}
+table.t tr.mixsub td,table.t tr.mixsub td:first-child{font-weight:700;background:var(--orange-soft)}
+table.t td .p{display:block;font-size:12px;font-weight:600}
+.pos{color:var(--ok)} .neg{color:var(--bad)}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font:600 13px/1.5 var(--fb)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.info{background:var(--blue-soft);color:var(--blue)} .pill.warn{background:var(--orange-soft);color:var(--orange)}
+/* Pista agora */
+.agora{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.medidor{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden}
+.medidor .rot{font:600 15px/1 var(--fd);color:var(--muted)}
+.medidor .num{font:700 44px/1 var(--fd);margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.medidor .barra{height:8px;border-radius:4px;background:var(--tank);margin-top:8px;overflow:hidden}
+.medidor .barra i{display:block;height:100%;border-radius:4px}
+/* Líderes: tanques */
+.lideres{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity}
+.lider{flex:none;width:150px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center;scroll-snap-align:start;position:relative}
+.lider .rank{position:absolute;top:8px;left:10px;font:700 18px/1 var(--fd);color:var(--muted)}
+.lider .rank.r1{color:var(--orange)}
+.foto{width:68px;height:68px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 6px;background:var(--blue-soft);color:var(--blue);font:700 26px/68px var(--fd);text-align:center;border:3px solid var(--card);box-shadow:0 0 0 2px var(--line)}
+.lider .nome{font:600 17px/1.1 var(--fd);min-height:2.2em;display:flex;align-items:center;justify-content:center}
+.tanques{display:flex;gap:10px;justify-content:center;margin-top:8px}
+.tq{width:46px}
+.tq .corpo{height:120px;border-radius:10px 10px 6px 6px;background:var(--tank);position:relative;overflow:hidden;border:2px solid var(--line)}
+.tq .corpo i{position:absolute;left:0;right:0;bottom:0;border-radius:0 0 4px 4px;transition:height .6s ease}
+.tq .corpo .alvo{position:absolute;left:-2px;right:-2px;border-top:2px dashed var(--ink);opacity:.55}
+.tq b{display:block;font:700 18px/1 var(--fd);margin-top:5px;font-variant-numeric:tabular-nums}
+.tq span{display:block;font-size:12px;color:var(--muted);font-weight:600}
+@media (prefers-reduced-motion: reduce){ .tq .corpo i{transition:none} }
+/* Enviar */
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--blue);border-radius:14px;padding:26px 14px;background:var(--blue-soft);color:var(--blue);text-align:center;cursor:pointer;font-weight:600}
+.drop svg{width:40px;height:40px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.imgout{width:100%;border-radius:10px;border:1px solid var(--line);display:block;margin:10px 0}
+.aviso{border-left:4px solid var(--orange);background:var(--orange-soft);padding:9px 12px;border-radius:8px;margin:8px 0;font-size:14px}
+.aviso.bad{border-color:var(--bad);background:var(--bad-soft)}
+.aviso.ok{border-color:var(--ok);background:var(--ok-soft)}
+.linha-tempo{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.lt{flex:none;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--card);cursor:pointer;text-align:left;color:var(--ink)}
+.lt b{display:block;font:700 18px/1 var(--fd)}
+.lt span{font-size:12px;color:var(--muted)}
+.lt.fech{border-color:var(--orange)}
+.lt[aria-pressed="true"]{background:var(--blue-soft);border-color:var(--blue)}
+/* Ajustes */
+.cat{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+.cat summary{cursor:pointer;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.cks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.ck{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:14px}
+.lidrow{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:10px 0}
+.lidrow .foto{width:52px;height:52px;line-height:52px;font-size:20px;margin:0;cursor:pointer}
+dialog{border:0;border-radius:14px;padding:18px;max-width:420px;width:calc(100% - 28px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(10,16,24,.55)}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+.vazio{text-align:center;padding:26px 12px;color:var(--muted)}
+.vazio .btn{margin-top:10px}
+.barras{display:flex;align-items:flex-end;gap:4px;height:120px;padding-top:8px}
+.barras div{flex:1;min-width:6px;border-radius:4px 4px 0 0;position:relative}
+.barras-leg{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+@media (max-width:420px){ .grid3{grid-template-columns:1fr 1fr} .medidor .num{font-size:38px} }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 id="ttl">Parciais de venda<small id="subttl">Carregando…</small></h1>
+  <select id="selPosto" aria-label="Posto"></select>
+</header>
+<main>
+  <section class="v" id="v-inicio"></section>
+  <section class="v" id="v-enviar"></section>
+  <section class="v" id="v-relatorios"></section>
+  <section class="v" id="v-metas"></section>
+  <section class="v" id="v-ajustes"></section>
+</main>
+<nav class="tabs" aria-label="Menu">
+  <a href="#inicio" data-v="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Início</a>
+  <a href="#enviar" data-v="enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Enviar</a>
+  <a href="#relatorios" data-v="relatorios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg>Relatórios</a>
+  <a href="#metas" data-v="metas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Metas</a>
+  <a href="#ajustes" data-v="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</a>
+</nav>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ===== Leitor B2Click (início) =====
+function numBR(s){ if(typeof s==='number') return s; s=String(s||'').trim(); if(!s) return 0; return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; }
+function br2iso(d){ const m=String(d).match(/(\d{2})\/(\d{2})\/(\d{4})/); return m?`${m[3]}-${m[2]}-${m[1]}`:null; }
+const RX_PROD=/^(\d{2,})\s+(.+?)\s+(-?[\d.]+,\d{3})\s+(-?[\d.]+,\d{2,3})\s+(-?[\d.]+,\d{2})\s+(-?\d+)\s+(-?[\d.]+,\d{2})$/;
+const RX_SUB=/^(-?[\d.]+,\d{3})\s+(-?[\d.]+,\d{2})\s+(-?\d+)$/;
+function novoResultado(fonte){ return {fonte, de:null, ate:null, emissao:null, postos:{}, setores:{}, total:null}; }
+function lerLinhasB2(linhas, fonte){
+  const R=novoResultado(fonte); let emp=null, setor=null, tabela=false, ultimoSub=null;
+  for(let l of linhas){
+    l=l.replace(/\s+/g,' ').trim(); if(!l) continue; let m;
+    if((m=l.match(/Emiss[aã]o:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i))) R.emissao={data:br2iso(m[1]),hora:m[2]};
+    if((m=l.match(/De:\s*(\d{2}\/\d{2}\/\d{4})\s*at[eé]:\s*(\d{2}\/\d{2}\/\d{4})/i))){ R.de=br2iso(m[1]); R.ate=br2iso(m[2]); }
+    if(/^Produto\s+Quantidade/i.test(l)){ tabela=true; continue; }
+    if(!tabela) continue;
+    if((m=l.match(/^EMPRESA\s+(\d+)\s*-\s*(.+)$/i))){ emp=m[1]; if(!R.postos[emp]) R.postos[emp]={nome:m[2].trim(),itens:[]}; continue; }
+    if((m=l.match(RX_PROD)) && emp && setor){ R.postos[emp].itens.push({s:setor,c:m[1],n:m[2].trim(),q:numBR(m[3]),v:numBR(m[5]),k:parseInt(m[6],10)}); continue; }
+    if((m=l.match(/^(\d+)\s*-\s*([^\d\s].*)$/))){ setor=m[1]; R.setores[setor]=m[2].trim(); continue; }
+    if((m=l.match(RX_SUB))){ ultimoSub={q:numBR(m[1]),v:numBR(m[2]),k:parseInt(m[3],10)}; }
+  }
+  R.total=ultimoSub; return R;
+}
+async function lerPDF(buf, pdfjs){
+  const pdf=await pdfjs.getDocument({data:buf}).promise; const linhas=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const pg=await pdf.getPage(p); const vp=pg.getViewport({scale:1}); const tc=await pg.getTextContent(); const grupos=[];
+    for(const it of tc.items){ const s=(it.str||'').trim(); if(!s) continue; const t=pdfjs.Util.transform(vp.transform,it.transform); const x=t[4], y=-t[5];
+      let g=grupos.find(g=>Math.abs(g.y-y)<2.5); if(!g){ g={y,itens:[]}; grupos.push(g); } g.itens.push({x,s}); }
+    grupos.sort((a,b)=>b.y-a.y); for(const g of grupos){ g.itens.sort((a,b)=>a.x-b.x); linhas.push(g.itens.map(i=>i.s).join(' ')); }
+  }
+  return linhas.some(l=>/comiss[aã]o sobre vendas por vendedor/i.test(l))?lerLinhasVend(linhas):lerLinhasB2(linhas,'pdf');
+}
+function lerXLSX(buf, XLSX){
+  const wb=XLSX.read(buf,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  const R=novoResultado('xlsx'); let hi=-1;
+  for(let i=0;i<rows.length && i<30;i++){ const r=rows[i].map(x=>String(x??'').trim().toUpperCase()); if(r.includes('PRODUTO')&&r.includes('QUANTIDADE')){ hi=i; break; } }
+  if(hi<0) throw new Error('Não achei a linha de títulos (Produto, Quantidade, Total) na planilha.');
+  const topo=rows.slice(0,hi).flat().filter(Boolean).join('\n'); let m;
+  if((m=topo.match(/De:\s*(\d{2}\/\d{2}\/\d{4})\s*at[eé]:\s*(\d{2}\/\d{2}\/\d{4})/i))){ R.de=br2iso(m[1]); R.ate=br2iso(m[2]); }
+  const H=rows[hi].map(x=>String(x??'').trim().toUpperCase()); const col=n=>H.indexOf(n);
+  const cE=col('COD_EMPRESA'), cF=col('NOME_FANTASIA'), cD=col('DATA_VENDA'), cG=col('GRUPO'), cNG=col('NOME_GRUPO'), cP=col('PRODUTO'), cN=col('NOME'), cQ=col('QUANTIDADE'), cT=col('TOTAL'), cK=col('QTD. VENDAS');
+  if(cP<0||cQ<0||cT<0||cG<0) throw new Error('A planilha não tem as colunas esperadas (GRUPO, Produto, Quantidade, Total).');
+  const datas=new Set();
+  for(let i=hi+1;i<rows.length;i++){ const r=rows[i]; const a=String(r[0]??'').trim();
+    if(/^Total Geral/i.test(a)){ R.total={q:numBR(r[cQ]),v:numBR(r[cT]),k:parseInt(r[cK]??0,10)||0}; continue; }
+    const prod=r[cP]; if(prod==null||prod===''||isNaN(Number(prod))) continue;
+    const emp=String(cE>=0?Math.round(Number(r[cE])):'0'); const s=String(Math.round(Number(r[cG])));
+    if(!R.postos[emp]) R.postos[emp]={nome:String(cF>=0?r[cF]:emp).trim(),itens:[]};
+    if(cNG>=0) R.setores[s]=String(r[cNG]||'').trim(); if(cD>=0&&r[cD]) datas.add(br2iso(r[cD]));
+    R.postos[emp].itens.push({s,c:String(Math.round(Number(prod))),n:String(r[cN]||'').trim(),q:numBR(r[cQ]),v:numBR(r[cT]),k:parseInt(r[cK]??0,10)||0});
+  }
+  if(datas.size>1) R.variasDatas=[...datas];
+  if(!R.de && datas.size===1){ R.de=R.ate=[...datas][0]; }
+  return R;
+}
+const RX_VPROD=/^(\d{2,})\s+(.+?)\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})$/;
+function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:null,emissao:null,posto:null,postoNome:'',vend:{},setores:{},total:null}; let vd=null,s=null,ult=null;
+  for(let l of linhas){ l=l.replace(/\s+/g,' ').trim(); if(!l) continue; let m;
+    if((m=l.match(/Emiss[aã]o:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i))) R.emissao={data:br2iso(m[1]),hora:m[2]};
+    if((m=l.match(/^Data:\s*(\d{2}\/\d{2}\/\d{4})\s*a\s*(\d{2}\/\d{2}\/\d{4})/i))){ R.de=br2iso(m[1]); R.ate=br2iso(m[2]); continue; }
+    if((m=l.match(/^Empresa:\s*(\d+)\s*-\s*(.+)$/i))){ R.posto=m[1]; R.postoNome=m[2].trim(); continue; }
+    if((m=l.match(/^VENDEDOR\s+(\d+)\s*-\s*(.+)$/i))){ vd=m[1]; if(!R.vend[vd]) R.vend[vd]={nome:m[2].trim(),itens:[]}; continue; }
+    if((m=l.match(/^GRUPO\s+(\d+)\s*-\s*(.+)$/i))){ s=m[1]; R.setores[s]=m[2].trim(); continue; }
+    if((m=l.match(RX_VPROD))&&vd&&s){ R.vend[vd].itens.push({s,c:m[1],q:numBR(m[3]),v:numBR(m[5])}); continue; }
+    if((m=l.match(/^(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})$/))) ult={v:numBR(m[3])};
+  }
+  R.total=ult; return R; }
+// ===== Leitor B2Click (fim) =====
+
+</script>
+<script>
+const VERSAO='2.2.0';
+/* ---------- utilidades ---------- */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtN=(n,d)=>(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtL=n=>fmtN(n,3), fmtR=n=>'R$ '+fmtN(n,2), fmtP=n=>isFinite(n)?Math.round(n*100)+'%':'–';
+const fmtU=(n,un)=>un==='L'?fmtL(n):fmtR(n);
+const fmtUc=(n,un)=>un==='L'?fmtN(n,0)+' L':'R$ '+fmtN(n,0);
+const sinal=(n,un)=>(n>=0?'+':'−')+(un==='L'?fmtL(Math.abs(n)):fmtR(Math.abs(n)));
+const hmin=h=>{const [a,b]=String(h).split(':').map(Number);return (a||0)*60+(b||0)};
+const minh=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const pad=n=>String(n).padStart(2,'0');
+const isoLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hoje=()=>isoLocal(new Date());
+const agoraHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
+const addDias=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return isoLocal(d)};
+const diaSemana=iso=>new Date(iso+'T12:00:00').getDay();
+const NOMES_DIA=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+const dataBR=iso=>iso?iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4):'';
+const dataCurta=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
+const iniciais=n=>String(n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+const uid=()=>Math.random().toString(36).slice(2,9);
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),3200)}
+function lsGet(k){try{return localStorage.getItem('parc-'+k)}catch{return null}}
+function lsSet(k,v){try{localStorage.setItem('parc-'+k,v)}catch{}}
+function dialogo(html,botoes){return new Promise(res=>{const d=$('#dlg');d.innerHTML=html+`<div class="row" style="justify-content:flex-end;margin-top:14px">${botoes.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}">${esc(b.t)}</button>`).join('')}</div>`;
+  d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const v=botoes[+b.dataset.i].v;const extra=botoes[+b.dataset.i].ler?botoes[+b.dataset.i].ler(d):null;d.close();res(extra??v)});d.onclose=()=>res(null);d.showModal();})}
+const confirmar=(t,ok='Confirmar')=>dialogo(`<h3>${esc(t)}</h3>`,[{t:'Cancelar',cls:'alt',v:false},{t:ok,v:true}]);
+
+/* ---------- configuração padrão (modelo do Escada BR) ---------- */
+function cfgPadrao(cod,nome){return {codigo:String(cod),nome:nome||'',fechamentos:['06:00','18:00','23:59'],lideres:[],
+ categorias:[
+  {id:'gc',nome:'Gasolina C.',grupo:'comb',un:'L',produtos:['10001'],setores:[],meta:2666.66},
+  {id:'gd',nome:'G. Dura Mais',grupo:'comb',un:'L',produtos:['10002'],setores:[],meta:800},
+  {id:'et',nome:'Etanol',grupo:'comb',un:'L',produtos:['10003'],setores:[],meta:700},
+  {id:'ds',nome:'Diesel S-10',grupo:'comb',un:'L',produtos:['10004'],setores:[],meta:25000},
+  {id:'arla',nome:'Arla',grupo:'mix',un:'R$',produtos:[],setores:['2'],meta:4333.33},
+  {id:'lub',nome:'Lubrificante',grupo:'mix',un:'R$',produtos:[],setores:['4'],meta:2833.33},
+  {id:'adt',nome:'Aditivo',grupo:'mix',un:'R$',produtos:[],setores:['5'],meta:1166.67},
+  {id:'pec',nome:'Peças e Acessórios',grupo:'mix',un:'R$',produtos:[],setores:['6','7','10'],meta:1500},
+  {id:'car',nome:'Car Care',grupo:'mix',un:'R$',produtos:[],setores:['21'],meta:600}],
+ duramais:{comum:'gc',dura:'gd'}, setores:{}, produtosComb:{}, emailPista:String(cod)==='16'?'pista.escada@pichilau.com.br':'', obrigacoes:JSON.parse(JSON.stringify(OBRIG_PADRAO))}}
+
+/* ---------- armazenamento: banco do app (compartilhado) ou deste aparelho ---------- */
+const S={mode:'local',canEdit:true,cfgs:{},posto:null,dias:{},fotos:{},curvas:{},rel:'lider',per:'mes',perDe:null,perAte:null,dashPer:'hoje',parcSel:null,lido:null,dirty:null};
+let DB=null,USER=null,DL=null;
+const LOC={get(){try{return JSON.parse(localStorage.getItem('parc-dados')||'{}')}catch{return {}}},set(o){try{localStorage.setItem('parc-dados',JSON.stringify(o))}catch{toast('Sem espaço para guardar neste aparelho')}}};
+const Store={
+  async cfgs(){ if(S.mode==='db'){const sn=await DB.collection('cfg').get();const o={};sn.docs.forEach(d=>o[d.id]=d.data());return o} return LOC.get().cfg||{} },
+  async salvarCfg(c){ if(S.mode==='db'){await DB.doc('cfg/'+c.codigo).set(JSON.parse(JSON.stringify(c)));return} const o=LOC.get();o.cfg=o.cfg||{};o.cfg[c.codigo]=c;LOC.set(o) },
+  async foto(p,id){ if(S.mode==='db'){const s=await DB.doc('fotos/'+p+'-'+id).get();return s.exists?s.data().img:null} return (LOC.get().fotos||{})[p+'-'+id]||null },
+  async salvarFoto(p,id,img){ if(S.mode==='db'){ if(img) await DB.doc('fotos/'+p+'-'+id).set({img}); else await DB.doc('fotos/'+p+'-'+id).delete(); return} const o=LOC.get();o.fotos=o.fotos||{}; if(img)o.fotos[p+'-'+id]=img; else delete o.fotos[p+'-'+id]; LOC.set(o) },
+  async dias(postos,de,ate){ let arr=[];
+    if(S.mode==='db'){ let q=DB.collection('dias').where('data','>=',de).where('data','<=',ate); if(postos.length<=30) q=q.where('posto','in',postos); const sn=await q.get(); arr=sn.docs.map(d=>d.data()); }
+    else { arr=Object.values(LOC.get().dias||{}).filter(d=>d.data>=de&&d.data<=ate); }
+    return arr.filter(d=>postos.includes(d.posto)) },
+  async salvarParcial(posto,data,p,nomes,setores){ const id=posto+'_'+data, key=p.h.replace(':','');
+    if(S.mode==='db'){ const ref=DB.doc('dias/'+id); const sn=await ref.get();
+      if(sn.exists) await ref.update({parciais:{[key]:p},nomes,setores}); else await ref.set({posto,data,parciais:{[key]:p},nomes,setores});
+      const n=await ref.get(); return n.data(); }
+    const o=LOC.get();o.dias=o.dias||{};const d=o.dias[id]||{posto,data,parciais:{},nomes:{},setores:{}};d.parciais[key]=p;Object.assign(d.nomes,nomes);Object.assign(d.setores,setores);o.dias[id]=d;LOC.set(o);return d },
+  async apagarParcial(posto,data,key){ const id=posto+'_'+data;
+    if(S.mode==='db'){ const ref=DB.doc('dias/'+id); const sn=await ref.get(); if(!sn.exists) return null; const d=JSON.parse(JSON.stringify(sn.data())); delete d.parciais[key];
+      if(!Object.keys(d.parciais).length){await ref.delete();return null} await ref.set(d); return d }
+    const o=LOC.get(); const d=o.dias?.[id]; if(!d) return null; delete d.parciais[key]; if(!Object.keys(d.parciais).length){delete o.dias[id];LOC.set(o);return null} LOC.set(o); return d }
+};
+const comTempo=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('tempo')),ms))]);
+
+/* ---------- cálculos ---------- */
+const cfgDe=p=>S.cfgs[p];
+const memo=new WeakMap();
+function calc(cfg,itens){ if(memo.has(itens)&&memo.get(itens).cfg===cfg) return memo.get(itens).r;
+  const v={},q={};cfg.categorias.forEach(c=>{v[c.id]=0}); const pm={},sm={}; const sem={};
+  cfg.categorias.forEach(c=>{(c.produtos||[]).forEach(x=>{pm[x]=pm[x]||c});(c.setores||[]).forEach(x=>{sm[x]=sm[x]||c})});
+  for(const it of itens||[]){ const c=pm[it.c]||sm[it.s]; if(c) v[c.id]+= c.un==='L'?it.q:it.v; else { sem[it.s]=(sem[it.s]||0)+it.v; } }
+  const r={v,sem}; memo.set(itens,{cfg,r}); return r }
+const grupo=(cfg,g)=>cfg.categorias.filter(c=>c.grupo===g);
+const somaG=(cfg,v,g)=>grupo(cfg,g).reduce((a,c)=>a+(v[c.id]||0),0);
+const metaG=(cfg,g,f=()=>1)=>grupo(cfg,g).reduce((a,c)=>a+c.meta*f(c),0);
+const zeros=cfg=>Object.fromEntries(cfg.categorias.map(c=>[c.id,0]));
+function fimFech(cfg,t){const F=cfg.fechamentos.map(hmin);return t===F.length-1?1440:F[t]}
+/* participação da venda até um horário: pelas horas do dia ou, com 7+ dias completos, pelo ritmo real do posto */
+function share(posto,catId,min){ const cfg=cfgDe(posto); const cv=S.curvas[posto]?.[catId];
+  if(min>=1439) return 1; if(min<=0) return 0;
+  if(!cv) return min/1440;
+  const pts=[[0,0],...cfg.fechamentos.map((h,i)=>[fimFech(cfg,i),i===cfg.fechamentos.length-1?1:cv[i]])];
+  for(let i=1;i<pts.length;i++){ if(min<=pts[i][0]){const [x0,y0]=pts[i-1],[x1,y1]=pts[i];return y0+(y1-y0)*(min-x0)/(x1-x0)} } return 1 }
+function montarCurva(posto){ const cfg=cfgDe(posto); if(!cfg) return; const n=cfg.fechamentos.length; const acum={}; let dias=0;
+  for(const d of Object.values(S.dias)){ if(d.posto!==posto||d.data>=hoje()) continue; const porT=fechPorTurno(d);
+    if(Object.keys(porT).length<n) continue; const fin=calc(cfg,porT[n-1].itens).v; dias++;
+    cfg.categorias.forEach(c=>{ acum[c.id]=acum[c.id]||Array(n).fill(0); for(let t=0;t<n;t++){ const v=calc(cfg,porT[t].itens).v[c.id]; acum[c.id][t]+= fin[c.id]>0? v/fin[c.id] : fimFech(cfg,t)/1440; } }); }
+  if(dias<7){ delete S.curvas[posto]; return } S.curvas[posto]={}; for(const k in acum) S.curvas[posto][k]=acum[k].map(x=>Math.min(1,x/dias)) }
+function parciaisOrd(d){return Object.values(d?.parciais||{}).sort((a,b)=>a.h<b.h?-1:1)}
+function fechPorTurno(d){const o={};for(const p of parciaisOrd(d)) if(p.tipo==='fech'&&p.turno!=null) o[p.turno]=p;return o}
+function ultimo(d){const a=parciaisOrd(d);return a[a.length-1]||null}
+function turnos(d){ const cfg=cfgMes(cfgDe(d.posto),d.data); if(!cfg) return []; const porT=fechPorTurno(d); const out=[]; let prev=null, ini=0;
+  for(let t=0;t<cfg.fechamentos.length;t++){ const p=porT[t]; if(!p) continue; const vp=calc(cfg,p.itens).v, va=prev?calc(cfg,prev.itens).v:zeros(cfg); const fim=fimFech(cfg,t);
+    const v={},m={}; cfg.categorias.forEach(c=>{ v[c.id]=vp[c.id]-va[c.id]; m[c.id]=c.meta*(share(d.posto,c.id,fim)-share(d.posto,c.id,ini)); });
+    out.push({t,ini,fim,lider:p.lider||{id:'',nome:'Sem líder'},v,m,data:d.data,posto:d.posto}); prev=p; ini=fim; }
+  return out }
+function fechado(d){const cfg=cfgDe(d.posto);return cfg&&fechPorTurno(d)[cfg.fechamentos.length-1]}
+/* total do dia: último relatório; meta do dia inteira se fechado, senão proporcional à hora */
+function totalDia(d){ const cfg=cfgMes(cfgDe(d.posto),d.data); const u=ultimo(d); if(!cfg||!u) return null; const v=calc(cfg,u.itens).v; const fim=fechado(d)?1440:hmin(u.h);
+  const m={}; cfg.categorias.forEach(c=>m[c.id]=c.meta*share(d.posto,c.id,fim)); return {v,m,h:u.h,completo:fim===1440} }
+
+/* ---------- carregar ---------- */
+async function carregarDias(postos,de,ate){ const arr=await comTempo(Store.dias(postos,de,ate),15000);
+  for(const k of Object.keys(S.dias)){ const d=S.dias[k]; if(postos.includes(d.posto)&&d.data>=de&&d.data<=ate) delete S.dias[k]; }
+  arr.forEach(d=>S.dias[d.posto+'_'+d.data]=d);
+  try{ const av=await comTempo(Store.vends(postos,de,ate),15000); av.forEach(d=>S.vend[d.posto+'_'+d.data]=d) }catch{} }
+const postosAtivos=()=>S.posto==='REDE'?Object.keys(S.cfgs):[S.posto];
+let carregadoRecente={};
+async function garantirRecentes(){ const ps=postosAtivos().filter(p=>!carregadoRecente[p]); if(!ps.length) return;
+  const ini=hoje().slice(0,5)+'01-01', d62=addDias(hoje(),-62); await carregarDias(ps,ini<d62?ini:d62,hoje()); ps.forEach(p=>{carregadoRecente[p]=1;montarCurva(p)}); }
+async function fotoDe(p,id){ const k=p+'-'+id; if(!(k in S.fotos)){ S.fotos[k]=null; try{S.fotos[k]=await Store.foto(p,id)}catch{} } return S.fotos[k] }
+
+/* ---------- início ---------- */
+function htmlFoto(src,nome,cls='foto'){return src?`<img class="${cls}" src="${src}" alt="">`:`<div class="${cls}" aria-hidden="true">${esc(iniciais(nome))}</div>`}
+function corP(p){return p>=1?'var(--ok)':p>=.9?'var(--orange)':'var(--bad)'}
+async function vInicio(){ const el=$('#v-inicio');
+  if(!Object.keys(S.cfgs).length){ el.innerHTML=`<div class="card vazio"><h3>Nenhum posto cadastrado</h3><p>Cadastre o posto, as metas e os líderes para começar.</p><a class="btn" href="#ajustes">Abrir ajustes</a></div>`; return }
+  el.innerHTML='<p class="muted">Carregando…</p>';
+  try{ await garantirRecentes() }catch(e){ el.innerHTML=`<div class="aviso bad">Não consegui ler os dados agora. Confira a internet e abra de novo.</div>`; return }
+  if(S.posto==='REDE') return inicioRede(el);
+  const cfg=cfgMes(cfgDe(S.posto),hoje()), d=S.dias[S.posto+'_'+hoje()];
+  const parc=parciaisOrd(d); const sel=(S.parcSel&&d?.parciais[S.parcSel])||parc[parc.length-1];
+  let h='';
+  if(!sel){ h+=`<div class="card vazio"><h3>Sem parcial hoje</h3><p>Anexe o relatório do B2Click para ver como o dia está indo.</p><a class="btn orange" href="#enviar">Enviar parcial</a></div>`; }
+  else {
+    const v=calc(cfg,sel.itens).v; const fim=(sel.tipo==='fech'&&sel.turno===cfg.fechamentos.length-1)?1440:hmin(sel.h);
+    const rc=somaG(cfg,v,'comb')/metaG(cfg,'comb',c=>share(S.posto,c.id,fim)), rm=somaG(cfg,v,'mix')/metaG(cfg,'mix',c=>share(S.posto,c.id,fim));
+    h+=`<div class="row" style="justify-content:space-between;margin:4px 2px 8px"><div><b style="font:700 20px var(--fd)">Hoje às ${sel.h}</b> <span class="muted small">${esc(sel.lider?.nome||'')}</span></div><a class="btn sm orange" href="#enviar">Nova parcial</a></div>`;
+    h+=`<div class="agora">${[['Combustíveis no ritmo',rc],['Mix de produtos no ritmo',rm]].map(([r,p])=>`<div class="medidor"><div class="rot">${r}</div><div class="num" style="color:${corP(p)}">${fmtP(p)}</div><div class="small muted">da meta até ${fim===1440?'o fim do dia':sel.h}</div><div class="barra"><i style="width:${Math.min(100,p*100)}%;background:${corP(p)}"></i></div></div>`).join('')}</div>`;
+    if(parc.length>1) h+=`<div class="linha-tempo" role="group" aria-label="Parciais de hoje">${parc.map(p=>`<button class="lt ${p.tipo==='fech'?'fech':''}" data-k="${p.h.replace(':','')}" aria-pressed="${p===sel}"><b>${p.h}</b><span>${p.tipo==='fech'?'fecha turno':'acompanha'}</span></button>`).join('')}</div>`;
+    h+=`<div class="card" style="padding:6px 6px 2px"><div class="scroll">${tabelaParcial(cfg,v,fim,sel.h)}</div></div>`;
+    h+=`<div class="row" style="margin-bottom:6px"><button class="btn alt sm" id="btImgHoje">Imagem para o WhatsApp</button></div><div id="imgHoje"></div>`;
+  }
+  h+=`<h2>Posto: realizado × meta</h2><div id="painelPosto"></div><h2>Líderes</h2><div class="chips" role="group" aria-label="Período">${[['hoje','Hoje'],['7','7 dias'],['mes','Este mês']].map(([k,t])=>`<button class="chip" data-dp="${k}" aria-pressed="${S.dashPer===k}">${t}</button>`).join('')}</div><div id="dashLid"></div><h2>Dia e mês da equipe</h2><div id="painelEquipe"></div><h2>Ranking dos vendedores</h2><div id="rankVend"></div><p class="small muted" style="text-align:center;margin:20px 8px 4px">Nossa missão: ser uma experiência feliz, conveniente e segura no seu caminho.</p>`;
+  el.innerHTML=h;
+  $$('.lt',el).forEach(b=>b.onclick=()=>{S.parcSel=b.dataset.k;vInicio()});
+  $$('[data-dp]',el).forEach(b=>b.onclick=()=>{S.dashPer=b.dataset.dp;vInicio()});
+  if(sel) $('#btImgHoje').onclick=async()=>{await fontes();mostrarImagem($('#imgHoje'),imgParcial(cfg,S.posto,d.data,sel),`parcial_${S.posto}_${d.data}_${sel.h.replace(':','')}.png`,textoParcial(cfg,d.data,sel),emailDe(cfg))};
+  painelPosto($('#painelPosto'),cfg); painelEquipe($('#painelEquipe'),cfg); rankVend($('#rankVend'),cfg);
+  dashLideres($('#dashLid'),cfg);
+}
+function tabelaParcial(cfg,v,fim,h){ const linha=(c)=>{const r=v[c.id]||0, ma=c.meta*share(cfg.codigo,c.id,fim), p=ma?r/ma:0; return `<tr><td>${esc(c.nome)}</td><td>${fmtU(r,c.un)}</td><td>${fmtU(c.meta,c.un)}</td><td class="${r-c.meta>=0?'pos':'neg'}">${sinal(r-c.meta,c.un)}</td><td style="color:${corP(p)};font-weight:700">${fmtP(p)}</td></tr>`};
+  const sub=(g,nome,cls)=>{const r=somaG(cfg,v,g), m=metaG(cfg,g), ma=metaG(cfg,g,c=>share(cfg.codigo,c.id,fim)), p=ma?r/ma:0; const un=g==='comb'?'L':'R$'; return `<tr class="${cls}"><td>${nome}</td><td>${fmtU(r,un)}</td><td>${fmtU(m,un)}</td><td class="${r-m>=0?'pos':'neg'}">${sinal(r-m,un)}</td><td style="color:${corP(p)}">${fmtP(p)}</td></tr>`};
+  const dm=cfg.duramais, c1=v[dm?.comum]||0, c2=v[dm?.dura]||0;
+  return `<table class="t"><thead><tr><th></th><th>Realizado</th><th>Meta diária</th><th>Diferença</th><th>Meta até ${fim===1440?'24h':h}</th></tr></thead><tbody>
+  ${grupo(cfg,'comb').map(linha).join('')}${sub('comb','Combustíveis','sub')}${grupo(cfg,'mix').map(linha).join('')}${sub('mix','Mix produtos','mixsub')}
+  ${dm?`<tr><td>Mix Duramais</td><td colspan="4" style="text-align:left"><b>${fmtP(c1+c2?c2/(c1+c2):0).replace('%','')}${c1+c2?','+String(Math.round((c2/(c1+c2))*10000)%100).padStart(2,'0').slice(0,0):''}</b> <span class="muted small">${fmtN(c1+c2?c2/(c1+c2)*100:0,2)}% (Duramais ${fmtN(c2,2)} L de ${fmtN(c1+c2,2)} L)</span></td></tr>`:''}</tbody></table>` }
+async function dashLideres(box,cfg){
+  const ativos=(cfg.lideres||[]).filter(l=>l.ativo!==false);
+  if(!ativos.length){box.innerHTML=`<div class="card vazio">Cadastre os líderes e as fotos em Ajustes para ver o painel da equipe.</div>`;return}
+  const de=S.dashPer==='hoje'?hoje():S.dashPer==='7'?addDias(hoje(),-6):hoje().slice(0,8)+'01';
+  const ag=agregarLideres(cfg.codigo,de,hoje());
+  const lista=ativos.map(l=>{const a=ag[l.id];const pc=a?somaG(cfg,a.v,'comb')/(somaG(cfg,a.m,'comb')||1):null, pm=a?somaG(cfg,a.v,'mix')/(somaG(cfg,a.m,'mix')||1):null;return {l,a,pc,pm,sc:a?(pc+pm)/2:-1}}).sort((x,y)=>y.sc-x.sc);
+  const tanque=(p,rot)=>{const alt=p==null?0:Math.min(1,p/1.3);return `<div class="tq"><div class="corpo"><span class="alvo" style="bottom:${100/1.3}%"></span><i style="height:${alt*100}%;background:${p==null?'transparent':corP(p)}"></i></div><b style="color:${p==null?'var(--muted)':corP(p)}">${p==null?'–':fmtP(p)}</b><span>${rot}</span></div>`};
+  box.innerHTML=`<div class="lideres">${lista.map((x,i)=>`<div class="lider" data-lid="${x.l.id}" role="button" tabindex="0" style="cursor:pointer"><span class="rank ${i===0&&x.a?'r1':''}">${x.a?i+1+'º':''}</span><span data-foto="${x.l.id}">${htmlFoto(null,x.l.nome)}</span><div class="nome">${esc(x.l.nome)}</div><div class="small muted">${x.a?x.a.n+(x.a.n>1?' turnos':' turno'):'sem turno fechado'}</div><div data-obb="${x.l.id}" style="min-height:24px;margin-top:4px"></div><div class="tanques">${tanque(x.pc,'Comb.')}${tanque(x.pm,'Mix')}</div></div>`).join('')}</div>
+  <p class="small muted">Tanque cheio até a linha tracejada = meta do turno batida. Conta só os turnos fechados (${cfg.fechamentos.join(', ')}). Toque no líder para ver obrigações, parciais e equipe.</p>`;
+  $$('[data-lid]',box).forEach(c=>{c.onclick=()=>abrirLider(cfg,c.dataset.lid);c.onkeydown=e=>{if(e.key==='Enter')abrirLider(cfg,c.dataset.lid)}});
+  try{ const mk=await marcasDe(cfg.codigo,hoje()); for(const x of lista){ const obs=obrigHoje(cfg,x.l,hoje()); const b=box.querySelector(`[data-obb="${x.l.id}"]`); if(b&&obs.length){const f=obs.filter(o=>mk[o.id+'_'+x.l.id]).length; b.innerHTML=`<span class="pill ${f===obs.length?'ok':'bad'}">${f}/${obs.length} obrigações</span>`} } }catch{}
+  for(const x of lista){ const src=await fotoDe(cfg.codigo,x.l.id); if(src){const s=box.querySelector(`[data-foto="${x.l.id}"]`); if(s) s.innerHTML=htmlFoto(src,x.l.nome)} }
+}
+function agregarLideres(posto,de,ate){ const cfg=cfgDe(posto); const o={};
+  for(const d of Object.values(S.dias)){ if(d.posto!==posto||d.data<de||d.data>ate) continue;
+    for(const t of turnos(d)){ const k=t.lider.id||'_'; const a=o[k]=o[k]||{nome:t.lider.nome,v:zeros(cfg),m:zeros(cfg),n:0}; a.n++; cfg.categorias.forEach(c=>{a.v[c.id]+=t.v[c.id];a.m[c.id]+=t.m[c.id]}); } }
+  return o }
+async function inicioRede(el){ const linhas=Object.values(S.cfgs).map(cfg=>{const d=S.dias[cfg.codigo+'_'+hoje()];const t=d&&totalDia(d);
+  return {cfg,t,pc:t?somaG(cfg,t.v,'comb')/(somaG(cfg,t.m,'comb')||1):null,pm:t?somaG(cfg,t.v,'mix')/(somaG(cfg,t.m,'mix')||1):null}});
+  el.innerHTML=`<h2>Rede hoje</h2><div class="card" style="padding:6px"><div class="scroll"><table class="t"><thead><tr><th>Posto</th><th>Última</th><th>Combustíveis</th><th>No ritmo</th><th>Mix</th><th>No ritmo</th></tr></thead><tbody>
+  ${linhas.map(x=>`<tr><td>${esc(x.cfg.codigo+' - '+x.cfg.nome)}</td><td>${x.t?x.t.h:'–'}</td><td>${x.t?fmtUc(somaG(x.cfg,x.t.v,'comb'),'L'):'–'}</td><td style="color:${x.pc==null?'':corP(x.pc)};font-weight:700">${x.pc==null?'–':fmtP(x.pc)}</td><td>${x.t?fmtUc(somaG(x.cfg,x.t.v,'mix'),'R$'):'–'}</td><td style="color:${x.pm==null?'':corP(x.pm)};font-weight:700">${x.pm==null?'–':fmtP(x.pm)}</td></tr>`).join('')}</tbody></table></div></div>
+  <p class="small muted">Escolha um posto no topo para ver a parcial completa e os líderes.</p>` }
+
+/* ---------- obrigações e painel do líder ---------- */
+const OBRIG_PADRAO=[{id:'arlai',nome:'Encerrante ARLA – início do turno',dias:[0,1,2,3,4,5,6],hora:''},{id:'arlaf',nome:'Encerrante ARLA – fim do turno',dias:[0,1,2,3,4,5,6],hora:''},{id:'pepd',nome:'PEP – Check list diário',dias:[0,1,2,3,4,5,6],hora:''},{id:'peps',nome:'PEP – Check list semanal',dias:[1],hora:''}];
+const emailDe=cfg=>cfg?.emailPista??(cfg?.codigo==='16'?'pista.escada@pichilau.com.br':'');
+function obrigHoje(cfg,l,data){const ds=diaSemana(data);return (cfg.obrigacoes||[]).filter(o=>(l.obrig||[]).includes(o.id)&&(o.dias||[]).includes(ds))}
+Store.marcas=async(p,d)=>{ if(S.mode==='db'){const s=await DB.doc('marcas/'+p+'_'+d).get();return s.exists?{...(s.data().m||{})}:{}} return {...((LOC.get().marcas||{})[p+'_'+d]||{})} };
+Store.marcar=async(p,d,k,v)=>{ if(S.mode==='db'){ const ref=DB.doc('marcas/'+p+'_'+d); const s=await ref.get();
+  if(!s.exists){ if(v) await ref.set({posto:p,data:d,m:{[k]:v}}); return } if(v){ await ref.update({m:{[k]:v}}); return } const m={...(s.data().m||{})}; delete m[k]; await ref.set({posto:p,data:d,m}); return }
+  const o=LOC.get(); o.marcas=o.marcas||{}; const mm=o.marcas[p+'_'+d]=o.marcas[p+'_'+d]||{}; if(v) mm[k]=v; else delete mm[k]; LOC.set(o) };
+async function marcasDe(p,d){ const k=p+'_'+d; if(!S.marcas) S.marcas={}; if(!S.marcas[k]) S.marcas[k]=await Store.marcas(p,d); return S.marcas[k] }
+function textoParcial(cfg,data,p){ const v=calc(cfg,p.itens).v; const L=[`*POSTO ${cfg.nome}* – ${dataBR(data)} ${p.h}`,`Líder: ${p.lider?.nome||'–'} (${p.tipo==='fech'?'fecha turno '+cfg.fechamentos[p.turno]:'acompanhamento'})`,''];
+  grupo(cfg,'comb').forEach(c=>L.push(`${c.nome}: ${fmtL(v[c.id])} de ${fmtL(c.meta)} L`)); L.push(`*Combustíveis: ${fmtL(somaG(cfg,v,'comb'))} de ${fmtL(metaG(cfg,'comb'))} L*`,'');
+  grupo(cfg,'mix').forEach(c=>L.push(`${c.nome}: ${fmtR(v[c.id])} de ${fmtR(c.meta)}`)); L.push(`*Mix produtos: ${fmtR(somaG(cfg,v,'mix'))} de ${fmtR(metaG(cfg,'mix'))}*`);
+  const dm=cfg.duramais; if(dm){const a=v[dm.comum]||0,b=v[dm.dura]||0; L.push('',`Mix Duramais: ${fmtN(a+b?b/(a+b)*100:0,2)}%`)} return L.join('\n') }
+async function abrirLider(cfg,id){ const l=(cfg.lideres||[]).find(x=>x.id===id); if(!l) return; const data=hoje(); let mk={}; try{ mk=await marcasDe(cfg.codigo,data) }catch{}
+  const obs=obrigHoje(cfg,l,data), d=S.dias[cfg.codigo+'_'+data]; const ps=parciaisOrd(d).filter(p=>p.lider?.id===id); const ts=d?turnos(d).filter(t=>t.lider.id===id):[]; const foto=await fotoDe(cfg.codigo,id);
+  const agora=agoraHM(); const st=(o,m)=>m?`<span class="pill ok">feito ${m.h}</span>`:o.hora&&agora>o.hora?`<span class="pill bad">atrasada (até ${o.hora})</span>`:`<span class="pill info">${o.hora?'até '+o.hora:'pendente'}</span>`;
+  const pc=(v,m,g)=>{const x=somaG(cfg,v,g)/(somaG(cfg,m,g)||1);return `<b style="color:${corP(x)}">${fmtP(x)}</b>`};
+  const eq=String(l.equipe||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const html=`<div class="row">${htmlFoto(foto,l.nome)}<div><h3 style="margin:0">${esc(l.nome)}</h3><span class="small muted">${NOMES_DIA[diaSemana(data)]}, ${dataBR(data)}</span></div></div>
+  <h3 style="margin-top:14px">Obrigações de hoje</h3>${obs.length?obs.map(o=>`<label class="ck" style="display:flex;justify-content:space-between;margin-bottom:6px"><span><input type="checkbox" data-ob="${o.id}" ${mk[o.id+'_'+id]?'checked':''}> ${esc(o.nome)}</span><span class="st">${st(o,mk[o.id+'_'+id])}</span></label>`).join(''):'<p class="small muted">Nenhuma obrigação marcada para hoje. Defina em Ajustes › Líderes.</p>'}
+  <h3 style="margin-top:14px">Turnos fechados hoje</h3>${ts.length?ts.map(t=>`<div class="small" style="margin-bottom:4px">${minh(t.ini)} às ${t.fim===1440?'23:59':minh(t.fim)}: combustíveis ${pc(t.v,t.m,'comb')}, mix ${pc(t.v,t.m,'mix')} da meta do turno</div>`).join(''):'<p class="small muted">Nenhum turno fechado hoje.</p>'}
+  <h3 style="margin-top:14px">Parciais enviadas hoje</h3>${ps.length?ps.map(p=>{const v=calc(cfg,p.itens).v,f=hmin(p.h);const m=Object.fromEntries(cfg.categorias.map(c=>[c.id,c.meta*share(cfg.codigo,c.id,f)]));return `<div class="small" style="margin-bottom:4px"><b>${p.h}</b> ${p.tipo==='fech'?'fecha turno':'acompanhamento'}: dia em ${pc(v,m,'comb')} comb., ${pc(v,m,'mix')} mix</div>`}).join(''):'<p class="small muted">Nenhuma parcial dele hoje.</p>'}
+  <h3 style="margin-top:14px">Equipe e vendas nos turnos dele hoje</h3>${(()=>{ const dv=S.vend[cfg.codigo+'_'+data]; const ag={}; if(dv) vendTurnos(dv,cfg).filter(t=>t.lider.id===id).forEach(t=>{ for(const vd in t.porVd){ const a=ag[vd]=ag[vd]||zeros(cfg); cfg.categorias.forEach(c=>a[c.id]+=t.porVd[vd][c.id]) } });
+    const lista=Object.entries(ag).sort((a,b)=>somaG(cfg,b[1],'comb')-somaG(cfg,a[1],'comb'));
+    const cad=equipeDoLider(cfg,l).filter(k=>!ag[k.cod]);
+    return (lista.length?`<table class="t small"><thead><tr><th>Colaborador</th><th>Comb.</th><th>Mix</th></tr></thead><tbody>${lista.map(([vd,v])=>`<tr><td>${esc(nomeVend(cfg,vd,dv))}<span class="p muted">${esc(colab(cfg,vd)?.funcao||'')}</span></td><td>${fmtUc(somaG(cfg,v,'comb'),'L')}</td><td>${fmtUc(somaG(cfg,v,'mix'),'R$')}</td></tr>`).join('')}</tbody></table>`:'<p class="small muted">Sem vendas por colaborador nos turnos dele hoje (envie o relatório de vendedores no fechamento).</p>')
+     +(cad.length||eq.length?`<div class="small muted" style="margin-top:6px">Escalados: ${[...cad.map(k=>k.nome+(k.ini?` (${k.ini}–${k.fim})`:'')),...eq].map(esc).join(', ')}</div>`:''); })()}`;
+  const pr=dialogo(html,[{t:'Fechar',v:true}]); let por=''; try{ if(USER){const me=await USER.me?.();por=me?.name||''} }catch{}
+  $$('[data-ob]',$('#dlg')).forEach(cb=>cb.onchange=async()=>{ const k=cb.dataset.ob+'_'+id, o=obs.find(x=>x.id===cb.dataset.ob); const val=cb.checked?{h:agoraHM(),por}:null;
+    try{ await Store.marcar(cfg.codigo,data,k,val); if(val) mk[k]=val; else delete mk[k]; cb.closest('label').querySelector('.st').innerHTML=st(o,val); toast(val?'Confirmado':'Desmarcado') }catch{ cb.checked=!cb.checked; toast('Não salvou. Confira a internet.') } });
+  pr.then(()=>{ if((location.hash||'#inicio')==='#inicio') vInicio() }) }
+
+/* ---------- vendedores ---------- */
+S.vend={};
+const FUNCOES=['Frentista','Trocador de óleo','Caixa','Líder','Outro'];
+Store.vends=async(postos,de,ate)=>{ let arr=[]; if(S.mode==='db'){ let q=DB.collection('vend').where('data','>=',de).where('data','<=',ate); if(postos.length<=30) q=q.where('posto','in',postos); arr=(await q.get()).docs.map(d=>d.data()); }
+  else arr=Object.values(LOC.get().vend||{}).filter(d=>d.data>=de&&d.data<=ate); return arr.filter(d=>postos.includes(d.posto)) };
+Store.salvarVend=async(posto,data,p,nomes)=>{ const id=posto+'_'+data, key=p.h.replace(':','');
+  if(S.mode==='db'){ const ref=DB.doc('vend/'+id); const sn=await ref.get(); if(sn.exists) await ref.update({parciais:{[key]:p},nomes}); else await ref.set({posto,data,parciais:{[key]:p},nomes}); return (await ref.get()).data(); }
+  const o=LOC.get(); o.vend=o.vend||{}; const d=o.vend[id]||{posto,data,parciais:{},nomes:{}}; d.parciais[key]=p; Object.assign(d.nomes,nomes); o.vend[id]=d; LOC.set(o); return d };
+function porVend(cfg,itens){ const g={}; for(const it of itens||[]) (g[it.vd]=g[it.vd]||[]).push(it); const o={}; for(const k in g) o[k]=calc(cfg,g[k]).v; return o }
+function vendTurnos(dv,cfg){ const porT=fechPorTurno(dv); const out=[]; let prev=null;
+  for(let t=0;t<cfg.fechamentos.length;t++){ const p=porT[t]; if(!p) continue; const a=porVend(cfg,p.itens), b=prev?porVend(cfg,prev.itens):{}; const o={};
+    for(const vd of new Set([...Object.keys(a),...Object.keys(b)])){ const v={}; let tem=false; cfg.categorias.forEach(c=>{ v[c.id]=(a[vd]?.[c.id]||0)-(b[vd]?.[c.id]||0); if(Math.abs(v[c.id])>0.001) tem=true }); if(tem) o[vd]=v }
+    out.push({t,lider:p.lider||{id:'',nome:'Sem líder'},porVd:o}); prev=p; }
+  return out }
+const colab=(cfg,vd)=>(cfg.colaboradores||[]).find(x=>String(x.cod)===String(vd));
+const nomeVend=(cfg,vd,dv)=>colab(cfg,vd)?.nome||dv?.nomes?.[vd]||('Vendedor '+vd);
+function sobrepoe(ini,fim,a,b){ const seg=(x,y)=>x<=y?[[x,y]]:[[x,1440],[0,y]]; return seg(ini,fim).some(([x,y])=>seg(a,b).some(([p,q])=>x<q&&p<y)) }
+function equipeDoLider(cfg,l){ const t=l.turno; return (cfg.colaboradores||[]).filter(k=>k.ativo!==false&&(k.lider?k.lider===l.id:(t!=null&&k.ini&&k.fim&&sobrepoe(hmin(k.ini),hmin(k.fim),t?fimFech(cfg,t-1):0,fimFech(cfg,t))))) }
+function mostrarLidoVend(){ const R=S.lidoV, box=$('#lido'); const cod=R.posto, cfg=cfgDe(cod);
+  if(!cfg){ box.innerHTML=`<div class="aviso bad">O posto ${esc(cod||'?')} deste relatório não está cadastrado.</div>`; return }
+  const data=R.de||hoje(); const hora=(R.emissao&&R.emissao.data===data)?R.emissao.hora:(data===hoje()?agoraHM():'23:59');
+  const its=Object.entries(R.vend).flatMap(([vd,x])=>x.itens.map(i=>({...i,vd}))); const soma=its.reduce((a,i)=>a+i.v,0); const pv=porVend(cfg,its);
+  const novos=Object.keys(R.vend).filter(vd=>!colab(cfg,vd));
+  const linhas=Object.entries(R.vend).map(([vd,x])=>({vd,x,v:pv[vd]||zeros(cfg)})).sort((a,b)=>somaG(cfg,b.v,'comb')-somaG(cfg,a.v,'comb'));
+  box.innerHTML=`${R.total?(Math.abs(soma-R.total.v)<0.06?`<div class="aviso ok">Conferido: vendas de ${linhas.length} colaboradores somam ${fmtR(soma)}, igual ao total do relatório.</div>`:`<div class="aviso bad">A soma (${fmtR(soma)}) não bate com o total do relatório (${fmtR(R.total.v)}).</div>`):''}
+  <div class="card" data-vposto="${esc(cod)}"><h3>Vendas por colaborador: ${esc(cod+' - '+cfg.nome)}</h3>
+  <div class="grid3"><label class="f">Data<input type="date" name="data" value="${data}"></label><label class="f">Horário<input type="time" name="hora" value="${hora}"></label>
+  <label class="f">Tipo<select name="tipo"><option value="a">Acompanhamento</option>${cfg.fechamentos.map((f,i)=>`<option value="${i}">Fecha turno ${f}</option>`).join('')}</select></label></div>
+  <label class="f">Líder responsável<select name="lider"><option value="">Escolha o líder</option>${(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<option value="${l.id}">${esc(l.nome)}</option>`).join('')}</select></label>
+  ${novos.length?`<div class="aviso">${novos.length} colaborador(es) novo(s). ${S.canEdit?'Ao salvar, entram em Ajustes › Colaboradores para definir função e horário.':'Peça ao responsável para definir função e horário em Ajustes.'}</div>`:''}
+  <div class="scroll"><table class="t"><thead><tr><th>Colaborador</th><th>Combustíveis</th><th>Mix</th></tr></thead><tbody>${linhas.map(x=>`<tr><td>${esc(x.x.nome)}<span class="p muted">${esc(colab(cfg,x.vd)?.funcao||'sem função')}</span></td><td>${fmtUc(somaG(cfg,x.v,'comb'),'L')}</td><td>${fmtUc(somaG(cfg,x.v,'mix'),'R$')}</td></tr>`).join('')}</tbody></table></div>
+  <p class="small muted">Para dividir a venda entre os líderes, envie este relatório também nos fechamentos de turno (06:00, 18:00, 23:59).</p>
+  <button class="btn orange" data-vsalvar style="width:100%">Salvar vendas por colaborador</button></div>`;
+  const card=box.querySelector('[data-vposto]'), f=n=>card.querySelector(`[name="${n}"]`);
+  f('tipo').value=tipoPadrao(cfg,f('hora').value); f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value);
+  let escolheu=false; f('lider').onchange=()=>{escolheu=true}; f('hora').onchange=()=>{f('tipo').value=tipoPadrao(cfg,f('hora').value); if(!escolheu) f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value)};
+  card.querySelector('[data-vsalvar]').onclick=async e=>{ const bt=e.currentTarget, d=f('data').value, h=f('hora').value, t=f('tipo').value, lid=(cfg.lideres||[]).find(l=>l.id===f('lider').value);
+    if(!d||!h) return toast('Informe data e horário'); if(!lid) return toast('Escolha o líder responsável');
+    const p={h,tipo:t==='a'?'acomp':'fech',turno:t==='a'?null:+t,lider:{id:lid.id,nome:lid.nome},em:new Date().toISOString(),itens:its.map(i=>({vd:i.vd,s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100}))};
+    const nomes=Object.fromEntries(Object.entries(R.vend).map(([vd,x])=>[vd,x.nome])); bt.disabled=true; bt.textContent='Salvando…';
+    try{ S.vend[cod+'_'+d]=await Store.salvarVend(cod,d,p,nomes);
+      if(S.canEdit&&novos.length){ const c=JSON.parse(JSON.stringify(cfg)); c.colaboradores=c.colaboradores||[]; novos.forEach(vd=>c.colaboradores.push({cod:vd,nome:R.vend[vd].nome,funcao:'',ini:'',fim:'',lider:'',ativo:true})); await Store.salvarCfg(c); S.cfgs[cod]=c; ED=null; }
+      bt.textContent='Salvo ✓'; toast('Vendas por colaborador salvas'); }catch{ bt.disabled=false; bt.textContent='Salvar vendas por colaborador'; toast('Não salvou. Confira a internet.') } };
+}
+function relColab(de,ate){ const cfg=cfgDe(S.posto), cols=colsCat(cfg); const ag={}; const tv=zeros(cfg);
+  for(let d=de;d<=ate;d=addDias(d,1)){ const dv=S.vend[S.posto+'_'+d]; const u=ultimo(dv); if(!u) continue; const pv=porVend(cfg,u.itens);
+    for(const vd in pv){ const a=ag[vd]=ag[vd]||{nome:nomeVend(cfg,vd,dv),v:zeros(cfg)}; cfg.categorias.forEach(c=>{a.v[c.id]+=pv[vd][c.id];tv[c.id]+=pv[vd][c.id]}) } }
+  const linhas=Object.entries(ag).sort((a,b)=>somaG(cfg,b[1].v,'comb')-somaG(cfg,a[1].v,'comb')).map(([vd,a])=>({cel:[[a.nome,colab(cfg,vd)?.funcao||''],...celulas(cfg,cols,a.v,null)]}));
+  if(linhas.length) linhas.push({tipo:'tot',cel:[['Total'],...celulas(cfg,cols,tv,null)]});
+  return {titulo:`${cfg.codigo} - ${cfg.nome}: vendas por colaborador`,sub:nomePer(de,ate),cols:[{t:'Colaborador'},...cols],linhas,nota:'Usa o último relatório de vendedores de cada dia.'} }
+
+/* ---------- painel do posto, equipe e ranking ---------- */
+const nDias=(de,ate)=>Math.round((new Date(ate+'T12:00:00')-new Date(de+'T12:00:00'))/864e5)+1;
+const fimMes=t=>{const d=new Date(+t.slice(0,4),+t.slice(5,7),0);return isoLocal(d)};
+function somaPeriodo(posto,de,ate){ const cfg=cfgDe(posto), v=zeros(cfg); for(let d=de;d<=ate;d=addDias(d,1)){ const dd=S.dias[posto+'_'+d], t=dd&&totalDia(dd); if(t) cfg.categorias.forEach(c=>v[c.id]+=t.v[c.id]) } return v }
+function colabAgg(cfg,de,ate){ const o={}; for(let d=de;d<=ate;d=addDias(d,1)){ const dv=S.vend[cfg.codigo+'_'+d], u=ultimo(dv); if(!u) continue; const pv=porVend(cfg,u.itens);
+  for(const vd in pv){ const a=o[vd]=o[vd]||{nome:nomeVend(cfg,vd,dv),v:zeros(cfg),dias:0}; a.dias++; cfg.categorias.forEach(c=>a.v[c.id]+=pv[vd][c.id]) } } return o }
+function painelPosto(box,cfg){ const t=hoje(), ds=(diaSemana(t)+6)%7, seg=addDias(t,-ds);
+  const per=[['Dia',t,t,t],['Semana',seg,t,addDias(seg,6)],['Mês',t.slice(0,8)+'01',t,fimMes(t)],['Ano',t.slice(0,5)+'01-01',t,t.slice(0,5)+'12-31']];
+  const vs=per.map(([,de,ate])=>somaPeriodo(cfg.codigo,de,ate));
+  const tab=(g,un,rot)=>`<div class="card" style="padding:8px 6px"><h3 style="margin:2px 6px 6px">${rot}</h3><div class="scroll"><table class="t"><thead><tr><th></th><th>Realizado</th><th>Meta</th><th>Falta</th><th>Atingido</th></tr></thead><tbody>${per.map(([n,de,,fim],i)=>{ const r=somaG(cfg,vs[i],g), m=metaPeriodo(cfg,g,de,fim), f=m-r, p=m?r/m:0;
+    return `<tr><td>${n}</td><td>${fmtUc(r,un)}</td><td>${fmtUc(m,un)}</td><td class="${f>0?'neg':'pos'}">${f>0?fmtUc(f,un):'bateu ✓'}</td><td><b>${fmtP(p)}</b></td></tr>`}).join('')}</tbody></table></div>
+    ${(()=>{ const rest=nDias(t,fimMes(t)), r=somaG(cfg,vs[2],g), m=metaPeriodo(cfg,g,per[2][1],per[2][3]), f=m-r; return f>0?`<p class="small" style="margin:6px">Para bater o mês: <b>${fmtUc(f/rest,un)} por dia</b> nos ${rest} dias que faltam (contando hoje).</p>`:'' })()}</div>`;
+  box.innerHTML=painelHoje(cfg)+tab('comb','L','Combustíveis (litros)')+tab('mix','R$','Mix de produtos (R$)')+'<p class="small muted">Cada dia conta o último relatório enviado (o acumulado do dia). Um relatório novo substitui o anterior, não soma.</p>' }
+function celDM(r,m,un){ return `${fmtUc(r,un)}${m?`<span class="p" style="color:${corP(r/m)}">${fmtP(r/m)}</span>`:''}` }
+function saldoCel(r,m,un){ if(!m) return '–'; const s=r-m; return `<span class="${s>=0?'pos':'neg'}" style="font-weight:700">${s>=0?'+':'−'}${fmtUc(Math.abs(s),un)}</span>` }
+function painelEquipe(box,cfg){ const t=hoje(), m0=t.slice(0,8)+'01'; const ld=agregarLideres(cfg.codigo,t,t), lm=agregarLideres(cfg.codigo,m0,t);
+  const ids=[...new Set([...(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>l.id),...Object.keys(lm)])];
+  const nomeL=id=>(cfg.lideres||[]).find(l=>l.id===id)?.nome||lm[id]?.nome||'Sem líder';
+  const linL=ids.map(id=>{ const a=ld[id], b=lm[id]; const g=(x,gr)=>x?[somaG(cfg,x.v,gr),somaG(cfg,x.m,gr)]:[0,0]; const [cd,cdm]=g(a,'comb'),[cm,cmm]=g(b,'comb'),[md,mdm]=g(a,'mix'),[mm,mmm]=g(b,'mix');
+    return `<tr><td>${esc(nomeL(id))}<span class="p muted">${b?b.n+' turno(s) no mês':'sem turno no mês'}</span></td><td>${celDM(cd,cdm,'L')}</td><td>${celDM(cm,cmm,'L')}</td><td>${saldoCel(cm,cmm,'L')}</td><td>${celDM(md,mdm,'R$')}</td><td>${celDM(mm,mmm,'R$')}</td><td>${saldoCel(mm,mmm,'R$')}</td></tr>` }).join('');
+  const cd=colabAgg(cfg,t,t), cm=colabAgg(cfg,m0,t);
+  const vds=Object.keys(cm).sort((a,b)=>somaG(cfg,cm[b].v,'comb')-somaG(cfg,cm[a].v,'comb'));
+  const linC=vds.map(vd=>{ const k=colab(cfg,vd)||{}, a=cd[vd], b=cm[vd]; const mc=+k.metaComb||0, mx=+k.metaMix||0;
+    const c1=a?somaG(cfg,a.v,'comb'):0, c2=somaG(cfg,b.v,'comb'), x1=a?somaG(cfg,a.v,'mix'):0, x2=somaG(cfg,b.v,'mix');
+    return `<tr><td>${esc(b.nome.split(' ').slice(0,2).join(' '))}<span class="p muted">${esc(k.funcao||'')} ${b.dias} dia(s)</span></td><td>${celDM(c1,a?mc:0,'L')}</td><td>${celDM(c2,mc*b.dias,'L')}</td><td>${saldoCel(c2,mc*b.dias,'L')}</td><td>${celDM(x1,a?mx:0,'R$')}</td><td>${celDM(x2,mx*b.dias,'R$')}</td><td>${saldoCel(x2,mx*b.dias,'R$')}</td></tr>` }).join('');
+  const hd=`<thead><tr><th></th><th>Comb. hoje</th><th>Comb. mês</th><th>Saldo mês</th><th>Mix hoje</th><th>Mix mês</th><th>Saldo mês</th></tr></thead>`;
+  box.innerHTML=`<div class="card" style="padding:8px 6px"><h3 style="margin:2px 6px 6px">Líderes</h3>${ids.length?`<div class="scroll"><table class="t">${hd}<tbody>${linL}</tbody></table></div><p class="small muted" style="margin:6px">Meta do líder = meta dos turnos que ele fechou. Saldo negativo = quanto falta.</p>`:'<p class="small muted">Cadastre os líderes em Ajustes.</p>'}</div>
+  <div class="card" style="padding:8px 6px"><h3 style="margin:2px 6px 6px">Colaboradores</h3>${vds.length?`<div class="scroll"><table class="t">${hd}<tbody>${linC}</tbody></table></div><p class="small muted" style="margin:6px">Meta por colaborador (por dia trabalhado) em Ajustes › Colaboradores.</p>`:'<p class="small muted">Envie o relatório de vendedores do B2Click para ver as vendas por colaborador.</p>'}</div>` }
+function rankVend(box,cfg){ const per=S.rankPer||'mes', t=hoje(), de=per==='hoje'?t:per==='7'?addDias(t,-6):t.slice(0,8)+'01'; const ag=colabAgg(cfg,de,t);
+  const cats=[{n:'Combustíveis',f:v=>somaG(cfg,v,'comb'),un:'L'},...cfg.categorias.map(c=>({n:c.nome,f:v=>v[c.id],un:c.un})),{n:'Mix produtos',f:v=>somaG(cfg,v,'mix'),un:'R$'}];
+  const chips=`<div class="chips" role="group" aria-label="Período do ranking">${[['hoje','Hoje'],['7','7 dias'],['mes','Este mês']].map(([k,tx])=>`<button class="chip" data-rk="${k}" aria-pressed="${per===k}">${tx}</button>`).join('')}</div>`;
+  if(!Object.keys(ag).length){ box.innerHTML=chips+'<div class="card vazio">Sem relatório de vendedores nesse período.</div>'; }
+  else box.innerHTML=chips+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px;margin-top:8px">${cats.map(c=>{ const top=Object.values(ag).map(a=>({n:a.nome,x:c.f(a.v)})).filter(a=>a.x>0.004).sort((a,b)=>b.x-a.x).slice(0,3);
+    return `<div class="card" style="margin:0;padding:10px"><h3 style="font-size:17px;margin-bottom:6px">${esc(c.n)}</h3>${top.length?top.map((a,i)=>`<div class="row" style="gap:6px;flex-wrap:nowrap;margin-bottom:3px"><b style="font:700 17px var(--fd);color:${i?'var(--muted)':'var(--orange)'};width:22px">${i+1}º</b><span class="grow small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.n.split(' ').slice(0,2).join(' '))}</span><b class="small">${fmtUc(a.x,c.un)}</b></div>`).join(''):'<span class="small muted">sem venda</span>'}</div>` }).join('')}</div>`;
+  $$('[data-rk]',box).forEach(b=>b.onclick=()=>{S.rankPer=b.dataset.rk;rankVend(box,cfg)}) }
+
+/* ---------- metas mensais e projeções ---------- */
+const _cm=new Map();
+function cfgMes(cfg,data){ if(!cfg||!data) return cfg; const mm=cfg.metasMes?.[data.slice(0,7)]?.cat; if(!mm) return cfg; let mp=_cm.get(cfg); if(!mp){mp={};_cm.set(cfg,mp)}
+  const key=data.slice(0,7); if(!mp[key]) mp[key]=Object.assign({},cfg,{categorias:cfg.categorias.map(x=>mm[x.id]!=null&&mm[x.id]!==''?Object.assign({},x,{meta:+mm[x.id]}):x)}); return mp[key] }
+function metaPeriodo(cfg,g,de,fim){ let s=0; for(let d=de;d<=fim;d=addDias(d,1)) s+=metaG(cfgMes(cfg,d),g); return s }
+function projDia(cfg,t,g){ if(!t) return 0; if(t.completo) return somaG(cfg,t.v,g); const m=hmin(t.h); return grupo(cfg,g).reduce((a,c)=>{const sh=share(cfg.codigo,c.id,m);return a+(sh>0.05?(t.v[c.id]||0)/sh:(t.v[c.id]||0))},0) }
+function projMes(cfg,g,data){ const m0=data.slice(0,8)+'01'; let real=0,n=0; for(let d=m0;d<data;d=addDias(d,1)){ const dd=S.dias[cfg.codigo+'_'+d], t=dd&&totalDia(dd); if(t){real+=somaG(cfg,t.v,g);n++} }
+  const dd=S.dias[cfg.codigo+'_'+data], pd=projDia(cfgMes(cfg,data),dd&&totalDia(dd),g); const media=n?real/n:pd; return real+pd+media*(nDias(data,fimMes(data))-1) }
+function painelHoje(cfg){ const t=hoje(), dd=S.dias[cfg.codigo+'_'+t], td=dd&&totalDia(dd), cm=cfgMes(cfg,t), m0=t.slice(0,8)+'01';
+  const bloco=(g,un,rot)=>{ const md=metaG(cm,g), rd=td?somaG(cfg,td.v,g):0, pd=projDia(cm,td,g), mm=metaPeriodo(cfg,g,m0,fimMes(t)), rm=somaG(cfg,somaPeriodo(cfg.codigo,m0,t),g), pm=projMes(cfg,g,t);
+    const it=(r,v,m)=>`<div style="margin-bottom:6px"><div class="small muted">${r}</div><b style="font:700 21px var(--fd);color:${m?corP(v/m):'inherit'}">${fmtUc(v,un)}</b>${m?` <span class="small" style="font-weight:700;color:${corP(v/m)}">${fmtP(v/m)}</span>`:''}</div>`;
+    return `<div class="card"><h3>${rot}</h3><div class="grid3">${it('Meta do dia',md)}${it('Realizado hoje',rd,md)}${it('Projeção do dia',pd,md)}${it('Meta do mês',mm)}${it('Acumulado do mês',rm,mm)}${it('Projeção do mês',pm,mm)}</div></div>` };
+  return bloco('comb','L','Combustíveis: hoje e mês')+bloco('mix','R$','Mix de produtos: hoje e mês')+'<p class="small muted">Projeção do dia pelo ritmo até a última parcial; do mês = acumulado + média dos dias × dias que faltam.</p>' }
+async function vMetas(){ const el=$('#v-metas');
+  if(!S.posto||S.posto==='REDE'||!cfgDe(S.posto)){ el.innerHTML='<div class="card vazio">Escolha um posto no topo para ver as metas.</div>'; return }
+  el.innerHTML='<p class="muted">Carregando…</p>'; try{ await garantirRecentes() }catch{}
+  const cfg=cfgDe(S.posto), t=hoje(), ano=t.slice(0,4), mAt=+t.slice(5,7), ini=ano+'-01-01', fimAno=ano+'-12-31';
+  const meds=[{k:'comb',n:'Combustíveis',un:'L',f:v=>somaG(cfg,v,'comb'),ind:'c'},{k:'mix',n:'Mix',un:'R$',f:v=>somaG(cfg,v,'mix'),ind:'m'},...cfg.categorias.map(c=>({k:c.id,n:c.nome,un:c.un,f:v=>v[c.id]||0}))];
+  const md=meds.find(x=>x.k===S.metaMed)||meds[0];
+  const metaP=(de,fim)=>{let s=0;for(let d=de;d<=fim;d=addDias(d,1)){const cm=cfgMes(cfg,d);s+=md.ind?metaG(cm,md.k):(cm.categorias.find(c=>c.id===md.k)?.meta||0)}return s};
+  const meses=[...Array(12)].map((_,i)=>{const m0=`${ano}-${pad(i+1)}-01`;return {i,m0,fim:fimMes(m0),mes:m0.slice(0,7)}});
+  const dHoje=S.dias[S.posto+'_'+t], tdH=dHoje&&totalDia(dHoje); const frac=tdH?(tdH.completo?1:hmin(tdH.h)/1440):hmin(agoraHM())/1440;
+  const dd=(de,ate)=>{let n=0;for(let d=de;d<=ate;d=addDias(d,1)){const x=S.dias[S.posto+'_'+d];if(x&&ultimo(x))n++}return n};
+  const proj=(r,de,fim)=>{const n=dd(de,addDias(t,-1)), pass=n+frac;return pass>0.05?r/pass*(n+nDias(t,fim)):r};
+  const cel=(r,m,pr)=>{ if(r==null) return `<td class="muted small">${m?fmtUc(m,md.un):'–'}</td>`; const base=pr!=null?pr:r, p=m?base/m:null; const bg=p==null?'transparent':p>=1?'var(--ok-soft)':p>=.9?'var(--orange-soft)':'var(--bad-soft)';
+    return `<td style="background:${bg}"><b style="color:${p==null?'var(--muted)':corP(p)}">${p==null?'–':(pr!=null?'proj. ':'')+fmtP(p)}</b><span class="p muted">${fmtUc(r,md.un)}${m?' de '+fmtUc(m,md.un):''}</span></td>` };
+  const mm=(mes,tipo,id)=>{const x=cfg.metasMes?.[mes]?.[tipo]?.[id]?.[md.ind];return md.ind&&x?+x:null};
+  const linhaPosto=()=>{ const tds=[]; tds.push(cel(tdH?md.f(tdH.v):0,metaP(t,t),tdH&&!tdH.completo&&md.ind?projDia(cfgMes(cfg,t),tdH,md.k):null));
+    let ra=0; meses.forEach(M=>{ if(M.i+1>mAt){tds.push(cel(null,metaP(M.m0,M.fim)));return} const ate=M.i+1===mAt?t:M.fim; if(!dd(M.m0,ate)){tds.push(cel(null,metaP(M.m0,M.fim)));return} const r=md.f(somaPeriodo(cfg.codigo,M.m0,ate)); ra+=r; tds.push(cel(r,metaP(M.m0,M.fim),M.i+1===mAt?proj(r,M.m0,M.fim):null)) });
+    tds.splice(1,0,tds[mAt]); tds.push(cel(ra,metaP(ini,fimAno),proj(ra,ini,fimAno))); return `<tr><td><b>${esc(cfg.nome)}</b></td>${tds.join('')}</tr>` };
+  const linhaInd=(nome,sub,tipo,id,agg,hojeMeta)=>{ const tds=[]; const aH=agg(t,t); const metaMesAt=mm(t.slice(0,7),tipo,id);
+    tds.push(cel(aH?md.f(aH.v):0, metaMesAt?metaMesAt/nDias(t.slice(0,8)+'01',fimMes(t)):hojeMeta(aH)));
+    let ra=0,ma=0,temInd=false; meses.forEach(M=>{ const mi=mm(M.mes,tipo,id); if(M.i+1>mAt){tds.push(cel(null,mi));if(mi){ma+=mi;temInd=true}return} const a=agg(M.m0,M.i+1===mAt?t:M.fim); const r=a?md.f(a.v):0; ra+=r;
+      const m=mi!=null?mi:hojeMeta(a); if(mi!=null)temInd=true; ma+=m||0; tds.push(cel(a?r:null,m,mi!=null&&M.i+1===mAt?proj(r,M.m0,M.fim):null)) });
+    tds.splice(1,0,tds[mAt]); tds.push(cel(ra,ma,temInd?proj(ra,ini,fimAno):null)); return `<tr><td>${esc(nome)}<span class="p muted">${esc(sub||'')}</span></td>${tds.join('')}</tr>` };
+  const lidAgg=id=>(de,ate)=>agregarLideres(cfg.codigo,de,ate)[id];
+  const lidMeta=a=>a&&md.ind?md.f(a.m):(a&&!md.ind?(a.m[md.k]||0):null);
+  const colAgg=vd=>(de,ate)=>colabAgg(cfg,de,ate)[vd];
+  const colMeta=k=>a=>{ if(!a||!md.ind) return null; const d=md.k==='comb'?+k?.metaComb:+k?.metaMix; return d?d*a.dias:null };
+  const vds=[...new Set([...(cfg.colaboradores||[]).filter(k=>k.ativo!==false).map(k=>String(k.cod)),...Object.keys(colabAgg(cfg,ini,t))])];
+  const head=`<thead><tr><th></th><th>Hoje</th><th>Mês atual</th>${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map(x=>`<th>${x}</th>`).join('')}<th>Ano ${ano}</th></tr></thead>`;
+  const tabela=(tit,rows)=>`<div class="card" style="padding:8px 6px"><h3 style="margin:2px 6px 6px">${tit}</h3>${rows?`<div class="scroll"><table class="t small">${head}<tbody>${rows}</tbody></table></div>`:'<p class="small muted" style="margin:6px">Sem dados.</p>'}</div>`;
+  let h=`<h2>Metas ${ano}</h2><div class="chips" role="group" aria-label="Medida">${meds.map(x=>`<button class="chip" data-mm="${x.k}" aria-pressed="${x===md}">${esc(x.n)}</button>`).join('')}</div>
+  <p class="small muted">Verde = bateu · laranja = 90 a 99% · vermelho = abaixo de 90%. Mês atual e ano mostram a projeção. Metas individuais só para Combustíveis e Mix.</p>`;
+  h+=tabela('Posto',linhaPosto());
+  h+=tabela('Líderes',(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>linhaInd(l.nome,'',`lid`,l.id,lidAgg(l.id),lidMeta)).join(''));
+  h+=tabela('Vendedores',vds.map(vd=>{const k=colab(cfg,vd);return linhaInd((k?.nome||nomeVend(cfg,vd,null)).split(' ').slice(0,2).join(' '),k?.funcao,'col',vd,colAgg(vd),colMeta(k))}).join(''));
+  if(S.canEdit){ const mes=S.metaMesEd||t.slice(0,7), m=S.metaPre||(cfg.metasMes||{})[mes]||{}; const L=(cfg.lideres||[]).filter(l=>l.ativo!==false), K=(cfg.colaboradores||[]).filter(k=>k.ativo!==false);
+    const ind=(tipo,id,nome)=>`<div style="border-top:1px solid var(--line);padding-top:8px"><div style="font-weight:600;margin-bottom:4px">${esc(nome)}</div><div class="grid2"><label class="f">Comb. (L no mês)<input data-mi="${tipo}" data-id="${esc(id)}" data-k="c" inputmode="decimal" value="${m[tipo]?.[id]?.c?fmtN(m[tipo][id].c,0):''}"></label><label class="f">Mix (R$ no mês)<input data-mi="${tipo}" data-id="${esc(id)}" data-k="m" inputmode="decimal" value="${m[tipo]?.[id]?.m?fmtN(m[tipo][id].m,2):''}"></label></div></div>`;
+    h+=`<div class="card"><h3>Definir metas do mês</h3><div class="row"><label class="f" style="max-width:200px">Mês<input type="month" id="mMes" value="${mes}"></label><button class="btn alt sm" id="mCopiar">Copiar do mês anterior</button></div>
+    <div class="small muted" style="margin:6px 0">Posto: meta por dia</div><div class="grid2">${cfg.categorias.map(c=>`<label class="f">${esc(c.nome)} (${c.un==='L'?'L':'R$'} por dia)<input data-mc="${c.id}" inputmode="decimal" value="${fmtN(m.cat?.[c.id]??c.meta,2)}"></label>`).join('')}</div>
+    <div class="small muted" style="margin:6px 0">Líderes: meta do mês</div>${L.map(l=>ind('lid',l.id,l.nome)).join('')||'<p class="small muted">Sem líderes.</p>'}
+    <div class="small muted" style="margin:6px 0">Vendedores: meta do mês</div>${K.map(k=>ind('col',String(k.cod),k.nome.split(' ').slice(0,2).join(' '))).join('')||'<p class="small muted">Sem colaboradores cadastrados.</p>'}
+    <button class="btn orange" id="mSalvar" style="width:100%;margin-top:8px">Salvar metas de ${mes.slice(5)}/${mes.slice(0,4)}</button></div>`; }
+  el.innerHTML=h;
+  $$('[data-mm]',el).forEach(b=>b.onclick=()=>{S.metaMed=b.dataset.mm;vMetas()});
+  if(!S.canEdit) return;
+  $('#mMes').onchange=()=>{S.metaMesEd=$('#mMes').value;S.metaPre=null;vMetas()};
+  $('#mCopiar').onclick=()=>{ const mes=$('#mMes').value; const d=new Date(+mes.slice(0,4),+mes.slice(5,7)-2,1); const ant=`${d.getFullYear()}-${pad(d.getMonth()+1)}`; const o=(cfg.metasMes||{})[ant]; if(!o) return toast('O mês anterior não tem metas salvas'); S.metaPre=JSON.parse(JSON.stringify(o)); vMetas(); toast('Copiado. Confira e salve.') };
+  $('#mSalvar').onclick=async e=>{ const mes=$('#mMes').value; if(!mes) return toast('Escolha o mês'); const o={cat:{},lid:{},col:{}};
+    $$('[data-mc]',el).forEach(i=>o.cat[i.dataset.mc]=numBR(i.value)); $$('[data-mi]',el).forEach(i=>{ if(!i.value.trim()) return; const x=o[i.dataset.mi][i.dataset.id]=o[i.dataset.mi][i.dataset.id]||{}; x[i.dataset.k]=numBR(i.value) });
+    const c=JSON.parse(JSON.stringify(S.cfgs[S.posto])); c.metasMes=c.metasMes||{}; c.metasMes[mes]=o; const b=e.currentTarget; b.disabled=true; b.textContent='Salvando…';
+    try{ await Store.salvarCfg(c); S.cfgs[S.posto]=c; _cm.clear(); ED=null; S.metaPre=null; toast('Metas salvas'); vMetas() }catch{ b.disabled=false; b.textContent='Salvar metas'; toast('Não salvou. Confira a internet.') } };
+}
+
+/* ---------- enviar ---------- */
+function vEnviar(){ const el=$('#v-enviar');
+  if(!Object.keys(S.cfgs).length){ el.innerHTML=`<div class="card vazio"><h3>Cadastre o posto primeiro</h3><a class="btn" href="#ajustes">Abrir ajustes</a></div>`; return }
+  el.innerHTML=`<h2>Enviar parcial</h2>
+  <label class="drop" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3-3 3 3"/></svg>
+  Anexar relatório do B2Click<span class="small" style="font-weight:500">“Resumo de Produtos Vendidos”, em PDF ou planilha (.xlsx), de um dia só</span><input type="file" id="arq" accept=".pdf,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+  <div id="lido"></div>`;
+  $('#arq').onchange=async e=>{const f=e.target.files[0]; if(f) await lerArquivo(f); e.target.value=''};
+}
+async function lerArquivo(f){ const box=$('#lido'); box.innerHTML='<p class="muted">Lendo o relatório…</p>';
+  try{ const buf=new Uint8Array(await f.arrayBuffer()); let R;
+    if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){ if(!window.pdfjsLib) throw new Error('O leitor de PDF não carregou. Confira a internet ou use a planilha.'); R=await lerPDF(buf,pdfjsLib); }
+    else { if(!window.XLSX) throw new Error('O leitor de planilha não carregou. Confira a internet.'); R=lerXLSX(buf,XLSX); }
+    if(R.tipo!=='vend'&&!Object.keys(R.postos).length) throw new Error('Não encontrei produtos neste arquivo. Confira se é o relatório “Resumo de Produtos Vendidos”.');
+    if(R.variasDatas||(R.de&&R.ate&&R.de!==R.ate)) throw new Error('O relatório tem mais de um dia. Gere no B2Click com a data “De” igual à “Até”.');
+    if(R.tipo==='vend'){ if(!Object.keys(R.vend).length) throw new Error('Não encontrei vendedores neste relatório.'); if(R.de&&R.ate&&R.de!==R.ate) throw new Error('O relatório tem mais de um dia. Gere com uma data só.'); S.lidoV=R; mostrarLidoVend(); return; }
+    S.lido=R; mostrarLido(); }
+  catch(err){ box.innerHTML=`<div class="aviso bad">${esc(err.message||'Não consegui ler este arquivo.')}</div>` } }
+function tipoPadrao(cfg,h){ const m=hmin(h); let melhor=null; cfg.fechamentos.forEach((f,i)=>{const dif=Math.abs(hmin(f)-m); if(dif<=45&&(!melhor||dif<melhor.dif)) melhor={i,dif}}); return melhor?String(melhor.i):'a' }
+function turnoDaHora(cfg,h){ const m=hmin(h); for(let i=0;i<cfg.fechamentos.length;i++) if(m<=fimFech(cfg,i)) return i; return cfg.fechamentos.length-1 }
+function liderPadrao(cfg,tipo,h){ const t=tipo==='a'?turnoDaHora(cfg,h):+tipo; const l=(cfg.lideres||[]).find(l=>l.ativo!==false&&String(l.turno)===String(t)); return l?l.id:'' }
+function mostrarLido(){ const R=S.lido, box=$('#lido'); const data=R.de||R.emissao?.data||hoje();
+  const somaV=Object.values(R.postos).flatMap(p=>p.itens).reduce((a,i)=>a+i.v,0);
+  let h=R.total?(Math.abs(somaV-R.total.v)<0.06?`<div class="aviso ok">Conferido: a soma dos ${Object.values(R.postos).reduce((a,p)=>a+p.itens.length,0)} produtos (${fmtR(somaV)}) bate com o total do relatório.</div>`:`<div class="aviso bad">A soma dos produtos (${fmtR(somaV)}) não bate com o total do relatório (${fmtR(R.total.v)}). Confira o arquivo antes de salvar.</div>`):'';
+  for(const [cod,p] of Object.entries(R.postos)){ const cfg=cfgMes(cfgDe(cod),R.de||hoje());
+    if(!cfg){ h+=`<div class="card"><h3>${esc(cod+' - '+p.nome)}</h3><div class="aviso">Este posto não está cadastrado no app.${S.canEdit?'':' Peça ao responsável para cadastrar.'}</div>${S.canEdit?`<button class="btn sm" data-novo="${esc(cod)}" data-nome="${esc(p.nome)}">Cadastrar com o modelo do Escada BR</button>`:''}</div>`; continue }
+    const hora=(R.emissao&&R.emissao.data===data)?R.emissao.hora:(data===hoje()?agoraHM():'23:59'); const tipo=tipoPadrao(cfg,hora);
+    const r=calc(cfg,p.itens); const fim=tipo!=='a'&&+tipo===cfg.fechamentos.length-1?1440:hmin(hora);
+    const semCat=Object.entries(r.sem).filter(([,v])=>v);
+    h+=`<div class="card" data-posto="${esc(cod)}"><h3>${esc(cod+' - '+(cfg.nome||p.nome))}</h3>
+    <div class="grid3"><label class="f">Data<input type="date" name="data" value="${data}"></label><label class="f">Horário<input type="time" name="hora" value="${hora}"></label>
+    <label class="f">Tipo<select name="tipo"><option value="a">Acompanhamento</option>${cfg.fechamentos.map((f,i)=>`<option value="${i}">Fecha turno ${f}</option>`).join('')}</select></label></div>
+    <label class="f">Líder responsável<select name="lider"><option value="">Escolha o líder</option>${(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<option value="${l.id}">${esc(l.nome)}</option>`).join('')}</select></label>
+    ${R.fonte==='xlsx'?'<p class="small muted" style="margin-top:-4px">A planilha não traz o horário de emissão: confira o horário acima.</p>':''}
+    ${semCat.length?`<div class="aviso">Setores sem categoria (não entram na parcial): ${semCat.map(([s,v])=>esc(s+' - '+(R.setores[s]||''))+' '+fmtR(v)).join('; ')}. ${S.canEdit?'Marque em Ajustes › Categorias.':'Avise o responsável.'}</div>`:''}
+    <div class="scroll prev">${tabelaParcial(cfg,r.v,fim,hora)}</div>
+    <div class="row" style="margin-top:12px"><button class="btn orange grow" data-salvar>Salvar e gerar imagem</button></div><div class="saida"></div></div>`; }
+  box.innerHTML=h;
+  $$('[data-novo]',box).forEach(b=>b.onclick=async()=>{const c=cfgPadrao(b.dataset.novo,b.dataset.nome);await Store.salvarCfg(c);S.cfgs[c.codigo]=c;preencherPostos();toast('Posto cadastrado. Ajuste metas e líderes em Ajustes.');mostrarLido()});
+  $$('[data-posto]',box).forEach(card=>{ const cod=card.dataset.posto, cfg=cfgDe(cod); const f=n=>card.querySelector(`[name="${n}"]`);
+    f('tipo').value=tipoPadrao(cfg,f('hora').value); f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value);
+    const atual=()=>{const t=f('tipo').value, fim=t!=='a'&&+t===cfg.fechamentos.length-1?1440:hmin(f('hora').value); card.querySelector('.prev').innerHTML=tabelaParcial(cfg,calc(cfg,S.lido.postos[cod].itens).v,fim,f('hora').value)};
+    let escolheu=false; f('lider').onchange=()=>{escolheu=true};
+    const lp=()=>{ if(!escolheu) f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value) };
+    f('hora').onchange=()=>{f('tipo').value=tipoPadrao(cfg,f('hora').value);lp();atual()};
+    f('tipo').onchange=()=>{lp();atual()};
+    card.querySelector('[data-salvar]').onclick=e=>salvarLido(card,cod,e.currentTarget); });
+}
+async function salvarLido(card,cod,bt){ const cfg=cfgDe(cod), R=S.lido, f=n=>card.querySelector(`[name="${n}"]`);
+  const data=f('data').value, h=f('hora').value, tipo=f('tipo').value, lid=(cfg.lideres||[]).find(l=>l.id===f('lider').value);
+  if(!data||!h){toast('Informe data e horário');return} if(!lid){toast('Escolha o líder responsável');f('lider').focus();return}
+  if(data>hoje()){toast('A data não pode ser futura');return}
+  const exist=S.dias[cod+'_'+data]?.parciais?.[h.replace(':','')]; if(exist&&!(await confirmar(`Já existe parcial às ${h} de ${dataBR(data)}. Substituir?`,'Substituir'))) return;
+  const itens=R.postos[cod].itens.map(i=>({s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100,k:i.k}));
+  const nomes={},setores={}; R.postos[cod].itens.forEach(i=>nomes[i.c]=i.n); Object.entries(R.setores).forEach(([k,v])=>setores[k]=v);
+  let por=''; try{ if(USER){const me=await USER.me?.();por=me?.name||''} }catch{}
+  const p={h,tipo:tipo==='a'?'acomp':'fech',turno:tipo==='a'?null:+tipo,lider:{id:lid.id,nome:lid.nome},fonte:R.fonte,em:new Date().toISOString(),por,itens};
+  bt.disabled=true; bt.textContent='Salvando…';
+  try{ const d=await Store.salvarParcial(cod,data,p,nomes,setores); S.dias[cod+'_'+data]=d; montarCurva(cod);
+    toast('Parcial salva'); bt.textContent='Salva ✓'; await fontes();
+    mostrarImagem(card.querySelector('.saida'),imgParcial(cfgMes(cfg,data),cod,data,p),`parcial_${cod}_${data}_${h.replace(':','')}.png`,textoParcial(cfgMes(cfg,data),data,p),emailDe(cfg));
+  }catch(e){ bt.disabled=false; bt.textContent='Salvar e gerar imagem'; toast(e?.code==='invalid_argument'?'Você não tem permissão para salvar. Peça acesso de colaborador ao app.':'Não salvou. Confira a internet e tente de novo.') } }
+function mostrarImagem(box,canvas,nome,texto,email){ const url=canvas.toDataURL('image/png'); const tl=texto?texto.replace(/\*/g,''):'';
+  box.innerHTML=`<img class="imgout" src="${url}" alt="Imagem da parcial"><p class="small muted">No celular, toque e segure na imagem para salvar ou mandar no WhatsApp.</p><div class="row">${DL?'<button class="btn sm" data-b>Baixar imagem</button>':`<a class="btn sm" download="${esc(nome)}" href="${url}">Baixar imagem</a>`}${S.mode==='api'?'<button class="btn sm orange" data-env>Enviar por e-mail e Teams</button>':''}${navigator.share?'<button class="btn sm alt" data-c>Compartilhar imagem</button>':''}</div>
+  ${texto?`<div class="row" style="margin-top:8px"><a class="btn sm alt" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}">WhatsApp</a><a class="btn sm alt" target="_blank" rel="noopener" href="mailto:${esc(email||'')}?subject=${encodeURIComponent(tl.split('\n')[0])}&body=${encodeURIComponent(tl)}">E-mail${email?' da pista':''}</a><button class="btn sm alt" data-t>Copiar para o Teams</button></div><p class="small muted">WhatsApp e e-mail levam o resumo em texto: anexe a imagem baixada. No Teams, cole o texto e a imagem.</p>`:''}`;
+  const blob=()=>new Promise(r=>canvas.toBlob(r,'image/png'));
+  const en=box.querySelector('[data-env]'); if(en) en.onclick=async()=>{ const m=nome.match(/^parcial_([^_]+)_/), posto=m?m[1]:S.posto; if(posto==='REDE') return toast('Escolha um posto no topo');
+    en.disabled=true; en.textContent='Enviando…'; try{ const r=await api('enviar',{posto,png:url.split(',')[1],nome,texto:tl||nome,assunto:(tl||nome).split('\n')[0]});
+      en.textContent=[r.email?'E-mail ✓':'',r.teams?'Teams ✓':''].filter(Boolean).join(' ')||'Nada configurado'; if(!r.email&&!r.teams) toast('Cadastre o e-mail da pista e o webhook do Teams em Ajustes') }
+    catch(e){ en.disabled=false; en.textContent='Enviar por e-mail e Teams'; toast(e.msg||'Não enviou. Confira a internet.') } };
+  const tt=box.querySelector('[data-t]'); if(tt) tt.onclick=async()=>{try{await navigator.clipboard.writeText(tl);toast('Texto copiado. Cole no Teams.')}catch{toast('Não deu para copiar aqui')}};
+  const b=box.querySelector('[data-b]'); if(b) b.onclick=async()=>{try{await DL.save({filename:nome,data:await blob()})}catch(e){if(e?.code&&e.code!=='declined'&&e.code!=='cancelled')toast('Não deu para baixar aqui. Toque e segure na imagem.')}};
+  const c=box.querySelector('[data-c]'); if(c) c.onclick=async()=>{try{const file=new File([await blob()],nome,{type:'image/png'}); if(navigator.canShare&&!navigator.canShare({files:[file]})) throw 0; await navigator.share({files:[file]})}catch(e){if(e?.name!=='AbortError')toast('Compartilhar não funciona aqui. Toque e segure na imagem.')}}; }
+
+/* ---------- imagens (canvas) ---------- */
+const FONT='"Barlow Condensed","Arial Narrow",Arial,sans-serif';
+const fontes=()=>!document.fonts?Promise.resolve():Promise.race([Promise.all(['700 30px','600 26px','500 26px'].map(f=>document.fonts.load(f+' "Barlow Condensed"'))).catch(()=>{}),new Promise(r=>setTimeout(r,2500))]);
+function caber(g,txt,maxW,peso,tam){ let t=tam; do{ g.font=`${peso} ${t}px ${FONT}`; if(g.measureText(txt).width<=maxW) break; t--; }while(t>12); }
+function imgParcial(cfg,posto,data,p){ const v=calc(cfg,p.itens).v; const fim=(p.tipo==='fech'&&p.turno===cfg.fechamentos.length-1)?1440:hmin(p.h);
+  const W=1080, X=[18,330,540,760,960,1062], RH=50; const comb=grupo(cfg,'comb'), mix=grupo(cfg,'mix');
+  const H=150+RH*(comb.length+mix.length+3)+30+200+40; const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,W,H);
+  const cel=(x0,x1,y,txt,{bg,cor='#111',al='right',b=true,tam=30}={})=>{ if(bg){g.fillStyle=bg;g.fillRect(x0,y,x1-x0,RH)} g.strokeStyle='#5c5c5c';g.lineWidth=1.5;g.strokeRect(x0,y,x1-x0,RH); if(txt==null)return; g.fillStyle=cor;caber(g,txt,x1-x0-20,b?700:500,tam);g.textBaseline='middle'; g.textAlign=al; g.fillText(txt,al==='right'?x1-10:x0+10,y+RH/2+1) };
+  g.fillStyle='#0DA537';g.fillRect(X[0],14,W-36,104); g.fillStyle='#fff';caber(g,('POSTO '+(cfg.nome||'')).toUpperCase().replace('POSTO POSTO','POSTO'),620,700,46);g.textAlign='left';g.textBaseline='alphabetic';g.fillText(('POSTO '+(cfg.nome||'')).toUpperCase().replace('POSTO POSTO','POSTO'),X[0]+20,66);
+  g.font=`600 27px ${FONT}`;g.textAlign='right';g.fillText(`${dataBR(data)} ${p.h}`,W-36,58); g.textAlign='left';g.font=`500 26px ${FONT}`;
+  g.fillText(`Líder: ${p.lider?.nome||'–'}   |   ${p.tipo==='fech'?'Fechamento do turno '+cfg.fechamentos[p.turno]:'Parcial de acompanhamento'}`,X[0]+20,104);
+  let y=132; const hd=['','REALIZADO','META DIÁRIA','DIFERENÇA',fim===1440?'% META':'% ATÉ '+p.h];
+  hd.forEach((t,i)=>cel(X[i],X[i+1],y,t,{bg:'#3A6FD8',cor:'#fff',al:'left',tam:i===4?24:28})); y+=RH;
+  const lin=(nome,r,m,un,bg,cor,ma)=>{ const pc=ma?r/ma:0; cel(X[0],X[1],y,nome,{bg,cor,al:'left'}); cel(X[1],X[2],y,un==='L'?fmtL(r):fmtR(r),{bg,cor}); cel(X[2],X[3],y,un==='L'?fmtL(m):fmtR(m),{bg,cor});
+    const df=r-m, forte=cor==='#fff'; cel(X[3],X[4],y,(df<0?'-':'')+(un==='L'?fmtL(Math.abs(df)):fmtR(Math.abs(df))),{bg:df>=0?'#C9EFC6':bg,cor:df>=0?'#0B7A24':forte?'#fff':'#E0201B'});
+    cel(X[4],X[5],y,fmtP(pc),{bg:pc>=1?'#C9EFC6':pc>=.9?'#FFE2A8':'#FFD0CC',cor:pc>=1?'#0B7A24':pc>=.9?'#9A5B00':'#C01712'}); y+=RH };
+  comb.forEach(c=>lin(c.nome,v[c.id],c.meta,'L','#E4F1E2','#111',c.meta*share(posto,c.id,fim)));
+  lin('Combustíveis',somaG(cfg,v,'comb'),metaG(cfg,'comb'),'L','#5DB548','#fff',metaG(cfg,'comb',c=>share(posto,c.id,fim)));
+  mix.forEach(c=>lin(c.nome,v[c.id],c.meta,'R$','#FFF2D8','#111',c.meta*share(posto,c.id,fim)));
+  lin('Mix Produtos',somaG(cfg,v,'mix'),metaG(cfg,'mix'),'R$','#C8561B','#fff',metaG(cfg,'mix',c=>share(posto,c.id,fim)));
+  const dm=cfg.duramais; if(dm){ y+=30; const c1=v[dm.comum]||0,c2=v[dm.dura]||0; const pc=c1+c2?c2/(c1+c2):0;
+    g.fillStyle='#6DB33F';g.fillRect(X[0],y,X[2]-X[0],170);g.strokeStyle='#5c5c5c';g.strokeRect(X[0],y,X[2]-X[0],170); g.fillStyle='#fff';g.font=`700 52px ${FONT}`;g.textAlign='left';g.textBaseline='middle';g.fillText('MIX DURAMAIS',X[0]+14,y+85);
+    const xm=Math.round((X[2]+X[5])/2); const R0=RH; const sv=RH;
+    [[X[2],xm,'GASOLINA COMUM','#3A6FD8'],[xm,X[5],'GASOLINA DURAMAIS','#0DA537']].forEach(([a,b,t,bg])=>{g.fillStyle=bg;g.fillRect(a,y,b-a,70);g.strokeRect(a,y,b-a,70);g.fillStyle='#fff';caber(g,t,b-a-20,700,28);g.textAlign='left';g.fillText(t,a+10,y+36)});
+    const yy=y+70; [[X[2],xm,fmtN(c1,2)],[xm,X[5],fmtN(c2,2)]].forEach(([a,b,t])=>{g.fillStyle='#fff';g.fillRect(a,yy,b-a,sv);g.strokeRect(a,yy,b-a,sv);g.fillStyle='#111';g.font=`700 30px ${FONT}`;g.textAlign='left';g.fillText(t,a+10,yy+sv/2)});
+    g.fillStyle='#C8561B';g.fillRect(X[2],yy+sv,X[5]-X[2],R0);g.strokeRect(X[2],yy+sv,X[5]-X[2],R0);g.fillStyle='#fff';g.font=`700 32px ${FONT}`;g.fillText(fmtN(pc*100,2)+'%',X[2]+10,yy+sv+R0/2); y+=170; }
+  g.fillStyle='#777';g.font=`500 20px ${FONT}`;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(`Relatório B2Click ${p.fonte==='pdf'?'(PDF)':'(planilha)'} · % = realizado ÷ meta proporcional ao horário`,X[0],H-14);
+  return cv }
+function imgTabela(titulo,sub,cols,linhas){ /* cols:[{t,w}] linhas:[{cel:[[txt,txt2,cor]],tipo}] */
+  const W=Math.max(1080,cols.reduce((a,c)=>a+c.w,0)+36), RH=62, H=140+RH*(linhas.length+1)+40; const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,W,H); g.fillStyle='#0DA537';g.fillRect(18,14,W-36,100); g.fillStyle='#fff';g.font=`700 42px ${FONT}`;g.textBaseline='alphabetic';g.textAlign='left';g.fillText(titulo,38,62);g.font=`500 26px ${FONT}`;g.fillText(sub,38,100);
+  let y=124; const xs=[18];cols.forEach(c=>xs.push(xs[xs.length-1]+c.w));
+  cols.forEach((c,i)=>{g.fillStyle='#3A6FD8';g.fillRect(xs[i],y,c.w,RH);g.strokeStyle='#5c5c5c';g.strokeRect(xs[i],y,c.w,RH);g.fillStyle='#fff';caber(g,c.t,c.w-14,700,22);g.textAlign=i?'right':'left';g.textBaseline='middle';g.fillText(c.t,i?xs[i+1]-8:xs[i]+8,y+RH/2)}); y+=RH;
+  for(const l of linhas){ const bg=l.tipo==='tot'?'#5DB548':l.tipo==='meta'?'#EEF3FB':'#fff'; l.cel.forEach((c,i)=>{const [a,b,cor]=Array.isArray(c)?c:[c];g.fillStyle=bg;g.fillRect(xs[i],y,cols[i].w,RH);g.strokeStyle='#5c5c5c';g.strokeRect(xs[i],y,cols[i].w,RH);
+    g.fillStyle=l.tipo==='tot'?'#fff':'#111';caber(g,a,cols[i].w-14,i&&l.tipo!=='tot'?600:700,25);g.textAlign=i?'right':'left';g.textBaseline='middle';g.fillText(a,i?xs[i+1]-8:xs[i]+8,b?y+RH/2-11:y+RH/2);
+    if(b){const hx={'var(--ok)':'#1C8F4A','var(--orange)':'#B86400','var(--bad)':'#C9352A'};g.fillStyle=l.tipo==='tot'?'#fff':(hx[cor]||'#555');g.font=`700 19px ${FONT}`;g.fillText(b,i?xs[i+1]-8:xs[i]+8,y+RH/2+15)}}); y+=RH }
+  g.fillStyle='#777';g.font=`500 20px ${FONT}`;g.textAlign='left';g.textBaseline='alphabetic';g.fillText('Parciais de venda · Postos Pichilau',18,H-12); return cv }
+
+/* ---------- relatórios ---------- */
+function periodo(){ const t=hoje(); if(S.per==='hoje') return [t,t]; if(S.per==='semana'){const ds=diaSemana(t);return [addDias(t,-((ds+6)%7)),t]}
+  if(S.per==='mes') return [t.slice(0,8)+'01',t]; if(S.per==='ano') return [t.slice(0,5)+'01-01',t]; return [S.perDe||t.slice(0,8)+'01',S.perAte||t] }
+async function vRelatorios(){ const el=$('#v-relatorios');
+  if(!Object.keys(S.cfgs).length){ el.innerHTML=`<div class="card vazio"><h3>Cadastre o posto primeiro</h3><a class="btn" href="#ajustes">Abrir ajustes</a></div>`; return }
+  const rede=S.posto==='REDE'; if(rede&&['lider','semana','colab'].includes(S.rel)) S.rel='posto'; if(!rede&&S.rel==='posto') S.rel='lider';
+  const tipos=rede?[['posto','Por posto'],['dia','Por dia']]:[['lider','Por líder'],['colab','Por colaborador'],['dia','Por dia'],['semana','Mesmo dia da semana']];
+  const [de,ate]=periodo();
+  el.innerHTML=`<h2>Relatórios</h2><div class="chips" role="group" aria-label="Tipo">${tipos.map(([k,t])=>`<button class="chip" data-r="${k}" aria-pressed="${S.rel===k}">${t}</button>`).join('')}</div>
+  ${S.rel==='semana'?`<label class="f" style="max-width:240px;margin-top:8px">Dia da semana<select id="selDs">${NOMES_DIA.map((n,i)=>`<option value="${i}">${n}</option>`).join('')}</select></label>`:
+  `<div class="chips" role="group" aria-label="Período" style="margin-top:6px">${[['hoje','Hoje'],['semana','Semana'],['mes','Mês'],['ano','Ano'],['pers','Escolher datas']].map(([k,t])=>`<button class="chip" data-p="${k}" aria-pressed="${S.per===k}">${t}</button>`).join('')}</div>
+  ${S.per==='pers'?`<div class="grid2" style="max-width:420px;margin-top:8px"><label class="f">De<input type="date" id="pDe" value="${de}"></label><label class="f">Até<input type="date" id="pAte" value="${ate}"></label></div>`:''}`}
+  <div id="relOut"><p class="muted">Carregando…</p></div>`;
+  $$('[data-r]',el).forEach(b=>b.onclick=()=>{S.rel=b.dataset.r;vRelatorios()});
+  $$('[data-p]',el).forEach(b=>b.onclick=()=>{S.per=b.dataset.p;vRelatorios()});
+  if($('#pDe')){ $('#pDe').onchange=$('#pAte').onchange=()=>{S.perDe=$('#pDe').value;S.perAte=$('#pAte').value;vRelatorios()} }
+  if($('#selDs')){ $('#selDs').value=S.ds??diaSemana(hoje()); $('#selDs').onchange=()=>{S.ds=+$('#selDs').value;vRelatorios()} }
+  const out=$('#relOut');
+  try{ if(S.rel==='semana') await carregarDias(postosAtivos(),addDias(hoje(),-7*12),hoje()); else await carregarDias(postosAtivos(),de,ate); }
+  catch{ out.innerHTML='<div class="aviso bad">Não consegui ler os dados. Confira a internet e tente de novo.</div>'; return }
+  const r=S.rel==='colab'?relColab(de,ate):S.rel==='lider'?relLider(de,ate):S.rel==='dia'?relDia(de,ate):S.rel==='semana'?relSemana():relPosto(de,ate);
+  if(!r.linhas.length){ out.innerHTML=`<div class="card vazio">Nenhuma parcial ${S.rel==='lider'?'de fechamento de turno ':''}nesse período.</div>`; return }
+  out.innerHTML=`<div class="card" style="padding:6px"><div class="scroll"><table class="t"><thead><tr>${r.cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${r.linhas.map(l=>`<tr class="${l.tipo==='tot'?'sub':''}">${l.cel.map(c=>{const [a,b,cor]=Array.isArray(c)?c:[c];return `<td>${esc(a)}${b?`<span class="p" style="color:${cor||'inherit'}">${esc(b)}</span>`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>
+  ${r.nota?`<p class="small muted">${r.nota}</p>`:''}<div class="row"><button class="btn alt sm" id="btImgRel">Imagem para o WhatsApp</button></div><div id="imgRel"></div>`;
+  if($('#btImgRel')) $('#btImgRel').onclick=async()=>{await fontes();mostrarImagem($('#imgRel'),imgTabela(r.titulo,r.sub,r.cols.map((c,i)=>({t:c.t,w:i?Math.max(150,c.t.length*13):300})),r.linhas),'relatorio.png',r.titulo+' – '+r.sub,emailDe(cfgDe(S.posto)))};
+}
+function colsCat(cfg){ return [...grupo(cfg,'comb').map(c=>({t:c.nome+' (L)',c})),{t:'Combustíveis (L)',g:'comb'},...grupo(cfg,'mix').map(c=>({t:c.nome,c})),{t:'Mix produtos',g:'mix'}] }
+function celulas(cfg,cols,v,m,pfx){ return cols.map(x=>{ const un=x.c?x.c.un:x.g==='comb'?'L':'R$'; const r=x.c?v[x.c.id]:somaG(cfg,v,x.g); const mm=m?(x.c?m[x.c.id]:somaG(cfg,m,x.g)):null; const p=mm?r/mm:null; return [fmtUc(r,un),p==null?'':(pfx||'')+fmtP(p),p==null?'':corP(p)] }) }
+const nomePer=(de,ate)=>de===ate?dataBR(de):dataBR(de)+' a '+dataBR(ate);
+function relLider(de,ate){ const cfg=cfgDe(S.posto), ag=agregarLideres(S.posto,de,ate), cols=colsCat(cfg);
+  const ord=Object.entries(ag).sort((a,b)=>somaG(cfg,b[1].v,'comb')/(somaG(cfg,b[1].m,'comb')||1)-somaG(cfg,a[1].v,'comb')/(somaG(cfg,a[1].m,'comb')||1));
+  const tv=zeros(cfg),tm=zeros(cfg); ord.forEach(([,a])=>cfg.categorias.forEach(c=>{tv[c.id]+=a.v[c.id];tm[c.id]+=a.m[c.id]}));
+  const linhas=ord.map(([,a])=>({cel:[[a.nome,a.n+(a.n>1?' turnos':' turno')],...celulas(cfg,cols,a.v,a.m)]}));
+  if(linhas.length) linhas.push({tipo:'tot',cel:[['Total'],...celulas(cfg,cols,tv,tm)]});
+  return {titulo:`${cfg.codigo} - ${cfg.nome}: vendas por líder`,sub:nomePer(de,ate)+' · turnos fechados',cols:[{t:'Líder'},...cols],linhas,nota:'Cada turno = diferença entre o fechamento e o fechamento anterior. % = realizado ÷ meta do turno.'} }
+function relDia(de,ate){ const ps=postosAtivos(); const cfg=cfgDe(ps[0]); const cols=colsCat(cfg); const linhas=[]; const tv=zeros(cfg),tm=zeros(cfg);
+  for(let d=de;d<=ate;d=addDias(d,1)){ const v=zeros(cfg),m=zeros(cfg); let tem=false, inc=false;
+    for(const p of ps){ const dd=S.dias[p+'_'+d]; const t=dd&&totalDia(dd); if(!t) continue; tem=true; if(!t.completo) inc=t.h; const c2=cfgDe(p); c2.categorias.forEach(c=>{ if(c.id in v){v[c.id]+=t.v[c.id];m[c.id]+=t.m[c.id]} }); }
+    if(!tem) continue; cfg.categorias.forEach(c=>{tv[c.id]+=v[c.id];tm[c.id]+=m[c.id]});
+    linhas.push({cel:[[dataCurta(d)+' '+NOMES_DIA[diaSemana(d)].slice(0,3),inc?'até '+inc:''],...celulas(cfg,cols,v,m)]}); }
+  if(linhas.length>1) linhas.push({tipo:'tot',cel:[['Total'],...celulas(cfg,cols,tv,tm)]});
+  return {titulo:(S.posto==='REDE'?'Rede Pichilau':`${cfg.codigo} - ${cfg.nome}`)+': vendas por dia',sub:nomePer(de,ate),cols:[{t:'Dia'},...cols],linhas,nota:'Usa o último relatório de cada dia. Dia sem fechamento das 23:59 aparece “até” o último horário, com a meta proporcional.'} }
+function relSemana(){ const cfg=cfgDe(S.posto), cols=colsCat(cfg), ds=S.ds??diaSemana(hoje()); let d=hoje(); while(diaSemana(d)!==ds) d=addDias(d,-1);
+  const datas=[]; for(let i=0;i<12;i++){datas.push(d);d=addDias(d,-7)} const tots=datas.map(x=>{const dd=S.dias[S.posto+'_'+x];return dd&&totalDia(dd)});
+  const linhas=[]; datas.forEach((x,i)=>{ const t=tots[i]; if(!t) return; const ant=tots.slice(i+1).find(Boolean);
+    linhas.push({cel:[[dataBR(x),t.completo?'dia fechado':'até '+t.h],...cols.map(c=>{const un=c.c?c.c.un:c.g==='comb'?'L':'R$';const r=c.c?t.v[c.c.id]:somaG(cfg,t.v,c.g);const a=ant?(c.c?ant.v[c.c.id]:somaG(cfg,ant.v,c.g)):null;const vr=a?r/a-1:null;
+      return [fmtUc(r,un),vr==null?'':(vr>=0?'▲ ':'▼ ')+Math.abs(Math.round(vr*100))+'%',vr==null?'':vr>=0?'var(--ok)':'var(--bad)']})]}) });
+  return {titulo:`${cfg.codigo} - ${cfg.nome}: ${NOMES_DIA[ds]} × ${NOMES_DIA[ds]}`,sub:'últimas 12 semanas',cols:[{t:'Data'},...cols],linhas,nota:'▲▼ = variação contra o mesmo dia da semana anterior que tem dados.'} }
+function relPosto(de,ate){ const ref=cfgDe(Object.keys(S.cfgs)[0]), cols=colsCat(ref); const linhas=[]; const tv=zeros(ref),tm=zeros(ref);
+  for(const cfg of Object.values(S.cfgs)){ const v=zeros(ref),m=zeros(ref); let tem=false;
+    for(let d=de;d<=ate;d=addDias(d,1)){ const dd=S.dias[cfg.codigo+'_'+d]; const t=dd&&totalDia(dd); if(!t) continue; tem=true; ref.categorias.forEach(c=>{ if(c.id in t.v){v[c.id]+=t.v[c.id];m[c.id]+=t.m[c.id]} }); }
+    if(!tem) continue; ref.categorias.forEach(c=>{tv[c.id]+=v[c.id];tm[c.id]+=m[c.id]}); linhas.push({cel:[[cfg.codigo+' - '+cfg.nome],...celulas(ref,cols,v,m)]}); }
+  if(linhas.length>1) linhas.push({tipo:'tot',cel:[['Rede'],...celulas(ref,cols,tv,tm)]});
+  return {titulo:'Rede Pichilau: vendas por posto',sub:nomePer(de,ate),cols:[{t:'Posto'},...cols],linhas,nota:'As categorias são somadas pelo código (ex.: “gc” = Gasolina C.) — mantenha os mesmos códigos em todos os postos.'} }
+
+/* ---------- ajustes ---------- */
+let ED=null; /* cópia em edição */
+async function vAjustes(){ const el=$('#v-ajustes'); const ro=!S.canEdit;
+  const cods=Object.keys(S.cfgs); const alvo=S.posto&&S.posto!=='REDE'?S.posto:cods[0];
+  if(!ED||ED.codigo!==alvo) ED=alvo?JSON.parse(JSON.stringify(S.cfgs[alvo])):null;
+  if(ED){ if(ED.emailPista==null) ED.emailPista=emailDe(ED); if(!ED.obrigacoes) ED.obrigacoes=JSON.parse(JSON.stringify(OBRIG_PADRAO)); }
+  let h=`<h2>Ajustes</h2>`;
+  h+=`<div class="card small muted">${S.mode==='local'?'<b>Modo de teste:</b> os dados ficam só neste aparelho.':S.mode==='api'?(SESS.senha?'Administrador.':'Posto '+esc(SESS.authPosto)+'.')+' Os dados ficam no servidor (planilha “Parciais de Venda – Controle”).':'Os dados ficam no banco do app, para toda a equipe.'} ${ro?'Você pode ver, mas só o responsável muda os ajustes.':''} Versão ${VERSAO}.${S.mode==='api'?' <button class="btn alt sm" onclick="sair()">Sair deste aparelho</button>':''}</div>`;
+  if(!ED){ h+=`<div class="card"><h3>Cadastrar o primeiro posto</h3>${ro?'<p>Peça ao responsável para cadastrar.</p>':`<div class="grid2"><label class="f">Código B2Click<input id="nCod" inputmode="numeric" value="16"></label><label class="f">Nome<input id="nNome" value="ESCADA BR"></label></div><button class="btn" id="btCriar">Cadastrar com metas do modelo</button>`}</div>`; el.innerHTML=h;
+    if($('#btCriar')) $('#btCriar').onclick=async()=>{const c=cfgPadrao($('#nCod').value.trim(),$('#nNome').value.trim());if(!c.codigo)return toast('Informe o código');await Store.salvarCfg(c);S.cfgs[c.codigo]=c;S.posto=c.codigo;lsSet('posto',c.codigo);ED=null;preencherPostos();vAjustes()}; return }
+  const dis=ro?'disabled':''; const conh=setoresConhecidos(ED), prods=produtosConhecidos(ED);
+  const aplicar=sec=>ro||Object.keys(S.cfgs).length<2?'':`<button class="btn alt sm" data-ap="${sec}">Aplicar a outros postos</button>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Posto ${esc(ED.codigo)}</h3>${ro?'':'<button class="btn alt sm" id="btNovoP">Novo posto</button>'}</div>
+   <div class="grid2" style="margin-top:10px"><label class="f">Código B2Click<input value="${esc(ED.codigo)}" disabled></label><label class="f">Nome que sai na parcial<input id="eNome" value="${esc(ED.nome)}" ${dis}></label></div><label class="f">E-mail da pista (envio da parcial)<input id="eMail" type="email" value="${esc(ED.emailPista||'')}" ${dis}></label>
+   ${S.mode==='api'&&!ro?`<div class="grid2"><label class="f">PIN do posto ${ED.temPin?'(definido)':'(falta criar)'}<input id="ePin" type="password" inputmode="numeric" placeholder="${ED.temPin?'em branco = mantém':'crie o PIN'}"></label><label class="f">Webhook do Teams ${ED.temTeams?'(configurado)':''}<input id="eTeams" placeholder="${ED.temTeams?'em branco = mantém':'URL do fluxo do Teams'}"></label></div>`:''}</div>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Horários de fechamento</h3>${aplicar('fechamentos')}</div><p class="small muted">Relatório nesses horários fecha o turno do líder. Os outros são acompanhamento.</p>
+   <div class="row">${ED.fechamentos.map((f,i)=>`<input type="time" data-fe="${i}" value="${f}" ${dis} style="padding:9px;border:1.5px solid var(--line);border-radius:9px;background:var(--card)">`).join('')}${ro?'':'<button class="btn alt sm" id="feMais">+ horário</button>'+(ED.fechamentos.length>1?'<button class="btn alt sm" id="feMenos">− último</button>':'')}</div></div>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Líderes</h3>${aplicar('lideres')}</div>${ED.lideres.length?'':'<p class="muted small">Nenhum líder ainda.</p>'}
+   ${ED.lideres.map((l,i)=>`<div class="lidrow"><label title="Trocar foto" style="position:relative"><span data-lf="${l.id}">${htmlFoto(null,l.nome)}</span>${ro?'':`<input type="file" accept="image/*" data-foto="${i}" style="position:absolute;width:1px;height:1px;opacity:0">`}</label>
+    <div><div class="grid2"><label class="f">Nome<input data-ln="${i}" value="${esc(l.nome)}" ${dis}></label><label class="f">Turno de costume<select data-lt="${i}" ${dis}><option value="">—</option>${ED.fechamentos.map((f,t)=>`<option value="${t}" ${String(l.turno)===String(t)?'selected':''}>até ${f}</option>`).join('')}</select></label></div>
+    <label class="f">Equipe (nomes separados por vírgula)<input data-leq="${i}" value="${esc(l.equipe||'')}" ${dis}></label><div class="small muted">Obrigações deste líder</div><div class="cks">${(ED.obrigacoes||[]).map(o=>`<label class="ck"><input type="checkbox" data-lob="${i}" value="${o.id}" ${(l.obrig||[]).includes(o.id)?'checked':''} ${dis}>${esc(o.nome)}</label>`).join('')}</div><div class="row"><label class="ck"><input type="checkbox" data-la="${i}" ${l.ativo!==false?'checked':''} ${dis}> ativo</label>${ro?'':`<button class="btn danger sm" data-lr="${i}">Remover</button>`}</div></div></div>`).join('')}
+   ${ro?'':'<button class="btn alt sm" id="lMais" style="margin-top:10px">+ líder</button>'}<p class="small muted">Toque na foto para trocar. A foto é dado pessoal: fica só no app, visível para quem tem acesso.</p></div>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Categorias e metas diárias</h3>${aplicar('categorias')}</div>
+   <p class="small muted">Combustíveis contam em litros (escolha os produtos). Os demais contam em R$ (marque os setores do B2Click que somam na categoria).</p>
+   ${ED.categorias.map((c,i)=>{ const doGrupo=c.grupo==='comb';
+    return `<details class="cat" ${i===S.catAberta?'open':''} data-ci="${i}"><summary><span>${esc(c.nome)}</span><span class="muted small">${fmtUc(c.meta,c.un)}/dia</span></summary>
+    <div class="grid2" style="margin-top:10px"><label class="f">Nome<input data-cn="${i}" value="${esc(c.nome)}" ${dis}></label><label class="f">Meta diária (${c.un==='L'?'litros':'R$'})<input data-cm="${i}" inputmode="decimal" value="${fmtN(c.meta,2)}" ${dis}></label>
+    <label class="f">Grupo<select data-cg="${i}" ${dis}><option value="comb" ${doGrupo?'selected':''}>Combustíveis (litros)</option><option value="mix" ${!doGrupo?'selected':''}>Mix produtos (R$)</option></select></label><label class="f">Código<input value="${esc(c.id)}" disabled></label></div>
+    ${doGrupo?`<div class="small muted">Produtos</div><div class="cks">${Object.entries(prods).map(([cod,n])=>`<label class="ck"><input type="checkbox" data-cp="${i}" value="${esc(cod)}" ${(c.produtos||[]).includes(cod)?'checked':''} ${dis}>${esc(cod+' '+n)}</label>`).join('')||'<span class="small muted">Envie um relatório para listar os produtos.</span>'}</div>`
+     :`<div class="small muted">Setores do B2Click</div><div class="cks">${Object.entries(conh).map(([s,n])=>{const outro=ED.categorias.find((o,j)=>j!==i&&(o.setores||[]).includes(s));return `<label class="ck"><input type="checkbox" data-cs="${i}" value="${esc(s)}" ${(c.setores||[]).includes(s)?'checked':''} ${dis}>${esc(s+' - '+n)}${outro?` <span class="muted">(em ${esc(outro.nome)})</span>`:''}</label>`}).join('')}</div>
+      ${ro?'':`<div class="row"><input data-csn="${i}" placeholder="Nº de setor sem venda ainda" inputmode="numeric" style="padding:8px;border:1.5px solid var(--line);border-radius:8px;width:200px;background:var(--card)"><button class="btn alt sm" data-csa="${i}">Incluir setor</button></div>`}`}
+    ${ro?'':`<div class="row" style="margin-top:10px"><button class="btn danger sm" data-cr="${i}">Remover categoria</button></div>`}</details>`}).join('')}
+   ${ro?'':'<button class="btn alt sm" id="cMais">+ categoria</button>'}
+   <div class="grid2" style="margin-top:12px"><label class="f">Mix Duramais: gasolina comum<select id="dmC" ${dis}>${grupo(ED,'comb').map(c=>`<option value="${c.id}" ${ED.duramais?.comum===c.id?'selected':''}>${esc(c.nome)}</option>`).join('')}</select></label><label class="f">Gasolina Duramais<select id="dmD" ${dis}>${grupo(ED,'comb').map(c=>`<option value="${c.id}" ${ED.duramais?.dura===c.id?'selected':''}>${esc(c.nome)}</option>`).join('')}</select></label></div></div>`;
+  const lidOpt=(sel)=>`<option value="">Pelo horário</option>${ED.lideres.map(l=>`<option value="${l.id}" ${sel===l.id?'selected':''}>${esc(l.nome)}</option>`).join('')}`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Colaboradores</h3>${ro?'':'<button class="btn alt sm" id="kPuxar">Puxar do relatório de vendedores</button>'}</div>
+  <p class="small muted">Vêm do relatório de vendedores do B2Click (código). Defina função, horário e líder. “Pelo horário” liga o colaborador ao líder de cada turno que o horário dele cruza — quem trabalha 10h–22h fica com dois líderes.</p>
+  ${(ED.colaboradores||[]).length?'':'<p class="small muted">Nenhum colaborador ainda. Envie o relatório de vendedores em Enviar.</p>'}
+  ${(ED.colaboradores||[]).map((k,i)=>`<details class="cat"><summary><span>${esc(k.nome)} <span class="muted small">${esc(k.cod)}</span></span><span class="muted small">${esc(k.funcao||'sem função')} ${k.ini?esc(k.ini+'–'+k.fim):''}</span></summary>
+   <div class="grid2" style="margin-top:10px"><label class="f">Nome<input data-kn="${i}" value="${esc(k.nome)}" ${dis}></label><label class="f">Função<select data-kf="${i}" ${dis}><option value="">—</option>${FUNCOES.map(f=>`<option ${k.funcao===f?'selected':''}>${f}</option>`).join('')}</select></label>
+   <label class="f">Entrada<input type="time" data-ki="${i}" value="${esc(k.ini||'')}" ${dis}></label><label class="f">Saída<input type="time" data-ko="${i}" value="${esc(k.fim||'')}" ${dis}></label><label class="f">Meta comb. (L por dia)<input data-kmc="${i}" inputmode="decimal" value="${k.metaComb?fmtN(k.metaComb,0):''}" ${dis}></label><label class="f">Meta mix (R$ por dia)<input data-kmm="${i}" inputmode="decimal" value="${k.metaMix?fmtN(k.metaMix,2):''}" ${dis}></label></div>
+   <label class="f">Líder<select data-kl="${i}" ${dis}>${lidOpt(k.lider)}</select></label><label class="ck"><input type="checkbox" data-ka="${i}" ${k.ativo!==false?'checked':''} ${dis}> ativo</label></details>`).join('')}</div>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Obrigações dos líderes</h3>${aplicar('obrigacoes')}</div><p class="small muted">Defina os dias e o horário limite. Em cada líder, marque quais ele cumpre. O líder confirma tocando no card dele no Início.</p>
+  ${(ED.obrigacoes||[]).map((o,i)=>`<div class="cat"><div class="grid2"><label class="f">Nome<input data-on="${i}" value="${esc(o.nome)}" ${dis}></label><label class="f">Fazer até<input type="time" data-oh="${i}" value="${esc(o.hora||'')}" ${dis}></label></div><div class="cks">${NOMES_DIA.map((n,dd)=>`<label class="ck"><input type="checkbox" data-od="${i}" value="${dd}" ${(o.dias||[]).includes(dd)?'checked':''} ${dis}>${n.slice(0,3)}</label>`).join('')}</div>${ro?'':`<button class="btn danger sm" data-or="${i}">Remover</button>`}</div>`).join('')}
+  ${ro?'':'<button class="btn alt sm" id="oMais">+ obrigação</button>'}</div>`;
+  h+=`<div class="card"><h3>Parciais de hoje</h3><div id="ajParc"></div></div>`;
+  if(!ro) h+=`<div style="position:sticky;bottom:78px;z-index:4;padding:8px 0"><button class="btn orange" id="btSalvarAj" style="width:100%">Salvar alterações</button></div>`;
+  el.innerHTML=h; ligarAjustes(el,ro);
+  for(const l of ED.lideres){ const src=await fotoDe(ED.codigo,l.id); const s=el.querySelector(`[data-lf="${l.id}"]`); if(s&&src) s.innerHTML=htmlFoto(src,l.nome) }
+  listaParciaisAj(ro);
+}
+function setoresConhecidos(cfg){ const o={...(cfg.setores||{})}; for(const d of Object.values(S.dias)) if(d.posto===cfg.codigo) Object.assign(o,d.setores||{});
+  cfg.categorias.forEach(c=>(c.setores||[]).forEach(s=>{if(!o[s])o[s]='(sem nome ainda)'})); if(S.lido) Object.assign(o,S.lido.setores);
+  return Object.fromEntries(Object.entries(o).sort((a,b)=>+a[0]-+b[0])) }
+function produtosConhecidos(cfg){ const o={...(cfg.produtosComb||{})}; const combS=new Set(['1']);
+  for(const d of Object.values(S.dias)) if(d.posto===cfg.codigo){ for(const p of Object.values(d.parciais)) for(const it of p.itens) if(combS.has(it.s)) o[it.c]=d.nomes?.[it.c]||o[it.c]||''; }
+  if(S.lido) for(const p of Object.values(S.lido.postos)) for(const it of p.itens) if(it.s==='1') o[it.c]=it.n;
+  cfg.categorias.forEach(c=>(c.produtos||[]).forEach(x=>{if(!(x in o))o[x]=''})); return o }
+function lerCampos(el){ if(!ED) return; const v=s=>el.querySelector(s);
+  if(v('#eNome')) ED.nome=v('#eNome').value.trim();
+  $$('[data-fe]',el).forEach(i=>ED.fechamentos[+i.dataset.fe]=i.value);
+  $$('[data-ln]',el).forEach(i=>ED.lideres[+i.dataset.ln].nome=i.value.trim());
+  $$('[data-lt]',el).forEach(i=>ED.lideres[+i.dataset.lt].turno=i.value===''?null:+i.value);
+  $$('[data-la]',el).forEach(i=>ED.lideres[+i.dataset.la].ativo=i.checked);
+  $$('[data-cn]',el).forEach(i=>ED.categorias[+i.dataset.cn].nome=i.value.trim());
+  $$('[data-cm]',el).forEach(i=>ED.categorias[+i.dataset.cm].meta=numBR(i.value));
+  $$('[data-cg]',el).forEach(i=>{const c=ED.categorias[+i.dataset.cg]; if(c.grupo!==i.value){c.grupo=i.value;c.un=i.value==='comb'?'L':'R$'}});
+  ED.categorias.forEach((c,ci)=>{ if(el.querySelector(`[data-cp="${ci}"]`)||c.grupo==='comb') c.produtos=$$(`[data-cp="${ci}"]`,el).filter(x=>x.checked).map(x=>x.value).concat(el.querySelector(`[data-cp="${ci}"]`)?[]:(c.produtos||[]));
+    if(el.querySelector(`[data-cs="${ci}"]`)) c.setores=$$(`[data-cs="${ci}"]`,el).filter(x=>x.checked).map(x=>x.value); });
+  if(v('#eMail')) ED.emailPista=v('#eMail').value.trim();
+  if(v('#ePin')&&v('#ePin').value.trim()) ED._pinNovo=v('#ePin').value.trim(); if(v('#eTeams')&&v('#eTeams').value.trim()) ED._teamsNovo=v('#eTeams').value.trim();
+  const K=ED.colaboradores||[]; $$('[data-kn]',el).forEach(i=>K[+i.dataset.kn].nome=i.value.trim()); $$('[data-kf]',el).forEach(i=>K[+i.dataset.kf].funcao=i.value);
+  $$('[data-ki]',el).forEach(i=>K[+i.dataset.ki].ini=i.value); $$('[data-ko]',el).forEach(i=>K[+i.dataset.ko].fim=i.value); $$('[data-kl]',el).forEach(i=>K[+i.dataset.kl].lider=i.value); $$('[data-ka]',el).forEach(i=>K[+i.dataset.ka].ativo=i.checked); $$('[data-kmc]',el).forEach(i=>K[+i.dataset.kmc].metaComb=numBR(i.value)); $$('[data-kmm]',el).forEach(i=>K[+i.dataset.kmm].metaMix=numBR(i.value));
+  $$('[data-leq]',el).forEach(i=>ED.lideres[+i.dataset.leq].equipe=i.value.trim());
+  ED.lideres.forEach((l,li)=>{ if(el.querySelector(`[data-lob="${li}"]`)) l.obrig=$$(`[data-lob="${li}"]`,el).filter(x=>x.checked).map(x=>x.value) });
+  $$('[data-on]',el).forEach(i=>ED.obrigacoes[+i.dataset.on].nome=i.value.trim());
+  $$('[data-oh]',el).forEach(i=>ED.obrigacoes[+i.dataset.oh].hora=i.value);
+  (ED.obrigacoes||[]).forEach((o,oi)=>{ if(el.querySelector(`[data-od="${oi}"]`)) o.dias=$$(`[data-od="${oi}"]`,el).filter(x=>x.checked).map(x=>+x.value) });
+  if(v('#dmC')) ED.duramais={comum:v('#dmC').value,dura:v('#dmD').value};
+  const op=el.querySelector('details[open]'); S.catAberta=op?+op.dataset.ci:null; }
+function ligarAjustes(el,ro){ if(ro) return; const re=()=>{lerCampos(el);vAjustes()};
+  const on=(s,f)=>{const x=el.querySelector(s); if(x) x.onclick=f};
+  on('#feMais',()=>{lerCampos(el);ED.fechamentos.push('12:00');vAjustes()}); on('#feMenos',()=>{lerCampos(el);ED.fechamentos.pop();vAjustes()});
+  on('#lMais',()=>{lerCampos(el);ED.lideres.push({id:uid(),nome:'Novo líder',turno:null,ativo:true});vAjustes()});
+  $$('[data-lr]',el).forEach(b=>b.onclick=async()=>{lerCampos(el);const l=ED.lideres[+b.dataset.lr]; if(await confirmar(`Remover ${l.nome}? O histórico dele continua nos relatórios.`,'Remover')){ED.lideres.splice(+b.dataset.lr,1);vAjustes()}});
+  $$('[data-foto]',el).forEach(inp=>inp.onchange=async()=>{ const f=inp.files[0]; if(!f) return; lerCampos(el); const l=ED.lideres[+inp.dataset.foto];
+    try{ const img=await reduzirFoto(f); await Store.salvarFoto(ED.codigo,l.id,img); S.fotos[ED.codigo+'-'+l.id]=img; toast('Foto salva'); vAjustes() }catch{ toast('Não consegui salvar a foto') } });
+  on('#kPuxar',async()=>{ lerCampos(el); try{ await carregarDias([ED.codigo],addDias(hoje(),-31),hoje()) }catch{} ED.colaboradores=ED.colaboradores||[]; let n=0;
+    for(const dv of Object.values(S.vend)) if(dv.posto===ED.codigo) for(const [vd,nm] of Object.entries(dv.nomes||{})) if(!ED.colaboradores.some(k=>String(k.cod)===vd)){ ED.colaboradores.push({cod:vd,nome:nm,funcao:'',ini:'',fim:'',lider:'',ativo:true}); n++ }
+    if(S.lidoV&&S.lidoV.posto===ED.codigo) for(const [vd,x] of Object.entries(S.lidoV.vend)) if(!ED.colaboradores.some(k=>String(k.cod)===vd)){ ED.colaboradores.push({cod:vd,nome:x.nome,funcao:'',ini:'',fim:'',lider:'',ativo:true}); n++ }
+    toast(n?`${n} colaborador(es) incluído(s). Salve as alterações.`:'Nenhum colaborador novo.'); vAjustes() });
+  on('#oMais',()=>{lerCampos(el);ED.obrigacoes.push({id:'o'+uid().slice(0,5),nome:'Nova obrigação',dias:[0,1,2,3,4,5,6],hora:''});vAjustes()});
+  $$('[data-or]',el).forEach(b=>b.onclick=async()=>{lerCampos(el);if(await confirmar('Remover esta obrigação?','Remover')){ED.obrigacoes.splice(+b.dataset.or,1);vAjustes()}});
+  on('#cMais',()=>{lerCampos(el);ED.categorias.push({id:'c'+uid().slice(0,4),nome:'Nova categoria',grupo:'mix',un:'R$',produtos:[],setores:[],meta:0});S.catAberta=ED.categorias.length-1;vAjustes()});
+  $$('[data-cr]',el).forEach(b=>b.onclick=async()=>{lerCampos(el);if(await confirmar('Remover esta categoria?','Remover')){ED.categorias.splice(+b.dataset.cr,1);vAjustes()}});
+  $$('[data-csa]',el).forEach(b=>b.onclick=()=>{const i=+b.dataset.csa;const s=el.querySelector(`[data-csn="${i}"]`).value.trim(); if(!/^\d+$/.test(s)) return toast('Informe o número do setor');
+    lerCampos(el);const c=ED.categorias[i];c.setores=[...new Set([...(c.setores||[]),s])];ED.setores=ED.setores||{};ED.setores[s]=ED.setores[s]||'(sem nome ainda)';vAjustes()});
+  $$('[data-ap]',el).forEach(b=>b.onclick=()=>{lerCampos(el);aplicarOutros(b.dataset.ap)});
+  on('#btNovoP',async()=>{ const r=await dialogo(`<h3>Novo posto</h3><label class="f">Código no B2Click<input id="dC" inputmode="numeric"></label><label class="f">Nome<input id="dN"></label><p class="small muted">Começa com as categorias, metas e horários do posto ${esc(ED.codigo)}. Ajuste depois.</p>`,[{t:'Cancelar',cls:'alt',v:null},{t:'Cadastrar',ler:d=>({c:$('#dC',d).value.trim(),n:$('#dN',d).value.trim()})}]);
+    if(!r||!r.c) return; if(S.cfgs[r.c]) return toast('Esse código já existe'); const c=JSON.parse(JSON.stringify(S.cfgs[ED.codigo])); c.codigo=r.c;c.nome=r.n;c.lideres=[];
+    await Store.salvarCfg(c);S.cfgs[c.codigo]=c;S.posto=c.codigo;lsSet('posto',c.codigo);ED=null;preencherPostos();toast('Posto cadastrado');vAjustes() });
+  on('#btSalvarAj',async e=>{ lerCampos(el); const b=e.currentTarget;
+    if(ED.fechamentos.some(f=>!f)) return toast('Preencha todos os horários');
+    const ord=[...ED.fechamentos].sort(); if(ord.join()!==ED.fechamentos.join()){ED.fechamentos=ord}
+    ED.categorias.forEach(c=>c.un=c.grupo==='comb'?'L':'R$'); ED.setores={...setoresConhecidos(ED)}; ED.produtosComb=produtosConhecidos(ED);
+    b.disabled=true;b.textContent='Salvando…';
+    try{ await Store.salvarCfg(ED); S.cfgs[ED.codigo]=JSON.parse(JSON.stringify(ED)); montarCurva(ED.codigo); preencherPostos(); toast('Alterações salvas'); }catch{ toast('Não salvou. Confira a internet.') }
+    b.disabled=false;b.textContent='Salvar alterações' });
+}
+async function aplicarOutros(sec){ const outros=Object.values(S.cfgs).filter(c=>c.codigo!==ED.codigo); const nomes={fechamentos:'horários de fechamento',lideres:'líderes',categorias:'categorias e metas',obrigacoes:'obrigações'};
+  const extra=sec==='lideres'?`<label class="f">Como copiar<select id="apM"><option value="add">Acrescentar os que faltam</option><option value="sub">Substituir a lista</option></select></label>`:sec==='categorias'?`<label class="ck" style="margin-bottom:8px"><input type="checkbox" id="apMeta" checked> copiar também as metas</label>`:'';
+  const r=await dialogo(`<h3>Aplicar ${nomes[sec]} a outros postos</h3><label class="ck" style="margin:6px 0"><input type="checkbox" id="apTodos"> Todos</label><div class="cks">${outros.map(c=>`<label class="ck"><input type="checkbox" data-ao="${esc(c.codigo)}">${esc(c.codigo+' - '+c.nome)}</label>`).join('')}</div>${extra}<p class="small muted">Os postos marcados recebem o que está na tela agora (mesmo sem salvar).</p>`,
+    [{t:'Cancelar',cls:'alt',v:null},{t:'Aplicar',ler:d=>({ps:$$('[data-ao]',d).filter(x=>x.checked||$('#apTodos',d).checked).map(x=>x.dataset.ao),m:$('#apM',d)?.value,meta:$('#apMeta',d)?.checked})}]);
+  if(!r||!r.ps.length) return;
+  for(const p of r.ps){ const c=JSON.parse(JSON.stringify(S.cfgs[p]));
+    if(sec==='fechamentos') c.fechamentos=[...ED.fechamentos];
+    if(sec==='obrigacoes') c.obrigacoes=JSON.parse(JSON.stringify(ED.obrigacoes||[]));
+    if(sec==='lideres'){ if(r.m==='sub') c.lideres=JSON.parse(JSON.stringify(ED.lideres)); else ED.lideres.forEach(l=>{ if(!c.lideres.some(x=>x.nome.toLowerCase()===l.nome.toLowerCase())) c.lideres.push({...l,id:uid()}) }) }
+    if(sec==='categorias'){ const antigas=Object.fromEntries(c.categorias.map(x=>[x.id,x])); c.categorias=ED.categorias.map(x=>({...JSON.parse(JSON.stringify(x)),meta:r.meta?x.meta:(antigas[x.id]?.meta??x.meta)})); c.duramais={...ED.duramais} }
+    await Store.salvarCfg(c); S.cfgs[p]=c; }
+  toast(`Aplicado a ${r.ps.length} posto(s)`) }
+function reduzirFoto(f){ return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ const s=240, cv=document.createElement('canvas'); cv.width=cv.height=s; const g=cv.getContext('2d'); const m=Math.min(img.width,img.height);
+  g.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,s,s); URL.revokeObjectURL(img.src); res(cv.toDataURL('image/jpeg',.8)) }; img.onerror=rej; img.src=URL.createObjectURL(f) }) }
+async function listaParciaisAj(ro){ const box=$('#ajParc'); if(!box) return; const d=S.dias[ED.codigo+'_'+hoje()]; const ps=parciaisOrd(d);
+  if(!ps.length){box.innerHTML='<p class="small muted">Nenhuma parcial hoje.</p>';return}
+  box.innerHTML=ps.map(p=>`<div class="row" style="border-bottom:1px solid var(--line);padding:8px 0"><b style="font:700 19px var(--fd);width:54px">${p.h}</b><span class="grow small">${p.tipo==='fech'?'<span class="pill warn">fecha turno</span>':'<span class="pill info">acompanha</span>'} ${esc(p.lider?.nome||'')} <span class="muted">${esc(p.por||'')}</span></span>${ro?'':`<button class="btn danger sm" data-ap-del="${p.h.replace(':','')}">Apagar</button>`}</div>`).join('');
+  $$('[data-ap-del]',box).forEach(b=>b.onclick=async()=>{ if(!(await confirmar('Apagar esta parcial?','Apagar'))) return; try{ const nd=await Store.apagarParcial(ED.codigo,hoje(),b.dataset.apDel); if(nd) S.dias[ED.codigo+'_'+hoje()]=nd; else delete S.dias[ED.codigo+'_'+hoje()]; toast('Parcial apagada'); listaParciaisAj(ro) }catch{ toast('Não apagou. Confira a internet.') } }) }
+
+/* ---------- navegação ---------- */
+function preencherPostos(){ const s=$('#selPosto'); const cods=Object.keys(S.cfgs).sort((a,b)=>+a-+b);
+  if(!S.posto||(S.posto!=='REDE'&&!S.cfgs[S.posto])) S.posto=cods[0]||null;
+  s.innerHTML=cods.map(c=>`<option value="${esc(c)}">${esc(c+' - '+S.cfgs[c].nome)}</option>`).join('')+(cods.length>1?'<option value="REDE">Toda a rede</option>':'');
+  s.value=S.posto||''; s.style.display=cods.length?'':'none';
+  $('#subttl').textContent=S.posto==='REDE'?'Toda a rede Pichilau':S.posto?`${S.posto} - ${S.cfgs[S.posto].nome}`:'Postos Pichilau' }
+const VIEWS={metas:vMetas,inicio:vInicio,enviar:vEnviar,relatorios:vRelatorios,ajustes:vAjustes};
+function rota(){ let v=(location.hash||'#inicio').slice(1); if(!VIEWS[v]) v='inicio';
+  $$('section.v').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); $$('.tabs a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===v)); $$('.tabs a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page')});
+  window.scrollTo(0,0); VIEWS[v]() }
+$('#selPosto').onchange=e=>{S.posto=e.target.value;lsSet('posto',S.posto);S.parcSel=null;ED=null;preencherPostos();rota()};
+addEventListener('hashchange',rota);
+/* ---------- servidor (GitHub Pages + Apps Script) ---------- */
+let SESS=null;
+async function api(action,data={}){ const r=await fetch(window.API_URL,{method:'POST',body:JSON.stringify({action,...(SESS||{}),...data})}); const j=await r.json();
+  if(!j.ok){ const e=new Error(j.erro||'Erro no servidor'); e.code=j.code==='perm'?'invalid_argument':j.code; e.msg=j.erro; throw e } return j.r }
+function usarServidor(){ Object.assign(Store,{
+  cfgs:()=>api('cfgs'),
+  salvarCfg:async c=>{ const pin=c._pinNovo||'', teams=c._teamsNovo||''; delete c._pinNovo; delete c._teamsNovo; await api('cfgSave',{cfg:JSON.parse(JSON.stringify(c)),pin,teams}); if(pin) c.temPin=true; if(teams) c.temTeams=true },
+  foto:(p,id)=>api('foto',{posto:p,id:p+'-'+id}), salvarFoto:(p,id,img)=>api('fotoSave',{posto:p,id:p+'-'+id,img}),
+  dias:(postos,de,ate)=>api('dias',{postos,de,ate}), salvarParcial:(posto,data,p,nomes,setores)=>api('parcialSave',{posto,data,p,nomes,setores}),
+  apagarParcial:(posto,data,key)=>api('parcialDel',{posto,data,key}), marcas:(p,d)=>api('marcas',{posto:p,data:d}), marcar:(p,d,k,v)=>api('marcar',{posto:p,data:d,k,v}),
+  vends:(postos,de,ate)=>api('vends',{postos,de,ate}), salvarVend:(posto,data,p,nomes)=>api('vendSave',{posto,data,p,nomes}) }) }
+async function telaLogin(msg){ $('.tabs').style.display='none'; $('#selPosto').style.display='none'; $('#subttl').textContent='Entrar';
+  $$('section.v').forEach(s=>s.classList.remove('on')); const el=$('#v-inicio'); el.classList.add('on'); el.innerHTML='<p class="muted">Carregando…</p>';
+  let ps=[],primeiro=false; try{ SESS=null; [ps,primeiro]=await Promise.all([api('postos'),api('primeiroAcesso')]) }catch{ el.innerHTML='<div class="aviso bad">Sem conexão com o servidor. Confira a internet e recarregue.</div>'; return }
+  el.innerHTML=`<div class="card" style="max-width:420px;margin:24px auto"><h3>Entrar</h3>${msg?`<div class="aviso bad">${esc(msg)}</div>`:''}
+  ${ps.length?`<label class="f">Posto<select id="lgP">${ps.map(p=>`<option value="${esc(p.codigo)}">${esc(p.codigo+' - '+p.nome)}</option>`).join('')}</select></label><label class="f">PIN do posto<input id="lgPin" type="password" inputmode="numeric" autocomplete="current-password"></label><button class="btn orange" id="lgOk" style="width:100%">Entrar</button>`:'<p class="small muted">Nenhum posto com PIN ainda. O administrador entra abaixo, cadastra o posto e cria o PIN.</p>'}
+  <details style="margin-top:16px" ${ps.length?'':'open'}><summary class="small">Sou administrador</summary><label class="f" style="margin-top:8px">${primeiro?'Crie a senha do administrador (6 ou mais caracteres)':'Senha do administrador'}<input id="lgS" type="password" autocomplete="current-password"></label><button class="btn" id="lgAdm" style="width:100%">Entrar como administrador</button></details></div>`;
+  const ir=async(s,lembrar)=>{ SESS=s; try{ await api('login'); if(lembrar) lsSet('sess',JSON.stringify(s)); else { try{sessionStorage.setItem('parc-sess',JSON.stringify(s))}catch{} } $('.tabs').style.display=''; iniciar() }catch(e){ SESS=null; telaLogin(e.msg||'Não foi possível entrar.') } };
+  const ok=$('#lgOk'); if(ok){ ok.onclick=()=>ir({authPosto:$('#lgP').value,pin:$('#lgPin').value},true); $('#lgPin').onkeydown=e=>{if(e.key==='Enter')ok.click()} }
+  $('#lgAdm').onclick=()=>ir({senha:$('#lgS').value},false); $('#lgS').onkeydown=e=>{if(e.key==='Enter')$('#lgAdm').click()} }
+function sair(){ try{ localStorage.removeItem('parc-sess'); sessionStorage.removeItem('parc-sess') }catch{} location.hash=''; location.reload() }
+async function iniciar(){
+  try{ if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js' }catch{}
+  if(window.API_URL){ usarServidor(); if(!SESS){ try{ SESS=JSON.parse(lsGet('sess')||sessionStorage.getItem('parc-sess')||'null') }catch{} } if(!SESS) return telaLogin(); }
+  else if(window.claude&&typeof claude.use==='function'){
+    try{ DB=await claude.use('db') }catch{} try{ USER=await claude.use('user') }catch{} try{ DL=await claude.use('downloads') }catch{} }
+  if(window.API_URL){ S.mode='api'; S.canEdit=!!SESS.senha; } else if(DB){ S.mode='db'; try{ S.canEdit=USER?!!(await USER.canEdit()):false }catch{ S.canEdit=false } } else { S.mode='local'; S.canEdit=true }
+  try{ S.cfgs=await comTempo(Store.cfgs(),20000) }catch(e){ if(e.code==='auth'){ try{localStorage.removeItem('parc-sess');sessionStorage.removeItem('parc-sess')}catch{} return telaLogin(e.msg) } $('#subttl').textContent='Sem conexão com os dados'; }
+  S.posto=SESS&&SESS.authPosto?String(SESS.authPosto):lsGet('posto'); preencherPostos(); rota();
+}
+iniciar();
+</script>
+</body>
+</html>
