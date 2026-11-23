@@ -225,7 +225,7 @@ function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:nul
 
 </script>
 <script>
-const VERSAO='2.2.0';
+const VERSAO='2.4.0';
 /* ---------- utilidades ---------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -238,7 +238,7 @@ const hmin=h=>{const [a,b]=String(h).split(':').map(Number);return (a||0)*60+(b|
 const minh=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
 const pad=n=>String(n).padStart(2,'0');
 const isoLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const hoje=()=>isoLocal(new Date());
+let DATA_REF=null; const hojeReal=()=>isoLocal(new Date()); const hoje=()=>DATA_REF||hojeReal();
 const agoraHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
 const addDias=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return isoLocal(d)};
 const diaSemana=iso=>new Date(iso+'T12:00:00').getDay();
@@ -351,12 +351,12 @@ async function vInicio(){ const el=$('#v-inicio');
   if(S.posto==='REDE') return inicioRede(el);
   const cfg=cfgMes(cfgDe(S.posto),hoje()), d=S.dias[S.posto+'_'+hoje()];
   const parc=parciaisOrd(d); const sel=(S.parcSel&&d?.parciais[S.parcSel])||parc[parc.length-1];
-  let h='';
+  let h=`<div class="row" style="margin:2px 2px 10px;align-items:flex-end"><label class="f" style="margin:0;max-width:190px">Ver o dia<input type="date" id="iniData" value="${hoje()}" max="${hojeReal()}"></label>${S.dataRef?'<button class="btn alt sm" id="iniHoje">Voltar para hoje</button>':''}</div>`;
   if(!sel){ h+=`<div class="card vazio"><h3>Sem parcial hoje</h3><p>Anexe o relatório do B2Click para ver como o dia está indo.</p><a class="btn orange" href="#enviar">Enviar parcial</a></div>`; }
   else {
     const v=calc(cfg,sel.itens).v; const fim=(sel.tipo==='fech'&&sel.turno===cfg.fechamentos.length-1)?1440:hmin(sel.h);
     const rc=somaG(cfg,v,'comb')/metaG(cfg,'comb',c=>share(S.posto,c.id,fim)), rm=somaG(cfg,v,'mix')/metaG(cfg,'mix',c=>share(S.posto,c.id,fim));
-    h+=`<div class="row" style="justify-content:space-between;margin:4px 2px 8px"><div><b style="font:700 20px var(--fd)">Hoje às ${sel.h}</b> <span class="muted small">${esc(sel.lider?.nome||'')}</span></div><a class="btn sm orange" href="#enviar">Nova parcial</a></div>`;
+    h+=`<div class="row" style="justify-content:space-between;margin:4px 2px 8px"><div><b style="font:700 20px var(--fd)">${S.dataRef?dataBR(hoje()):'Hoje'} às ${sel.h}</b> <span class="muted small">${esc(sel.lider?.nome||'')}</span></div><a class="btn sm orange" href="#enviar">Nova parcial</a></div>`;
     h+=`<div class="agora">${[['Combustíveis no ritmo',rc],['Mix de produtos no ritmo',rm]].map(([r,p])=>`<div class="medidor"><div class="rot">${r}</div><div class="num" style="color:${corP(p)}">${fmtP(p)}</div><div class="small muted">da meta até ${fim===1440?'o fim do dia':sel.h}</div><div class="barra"><i style="width:${Math.min(100,p*100)}%;background:${corP(p)}"></i></div></div>`).join('')}</div>`;
     if(parc.length>1) h+=`<div class="linha-tempo" role="group" aria-label="Parciais de hoje">${parc.map(p=>`<button class="lt ${p.tipo==='fech'?'fech':''}" data-k="${p.h.replace(':','')}" aria-pressed="${p===sel}"><b>${p.h}</b><span>${p.tipo==='fech'?'fecha turno':'acompanha'}</span></button>`).join('')}</div>`;
     h+=`<div class="card" style="padding:6px 6px 2px"><div class="scroll">${tabelaParcial(cfg,v,fim,sel.h)}</div></div>`;
@@ -364,6 +364,8 @@ async function vInicio(){ const el=$('#v-inicio');
   }
   h+=`<h2>Posto: realizado × meta</h2><div id="painelPosto"></div><h2>Líderes</h2><div class="chips" role="group" aria-label="Período">${[['hoje','Hoje'],['7','7 dias'],['mes','Este mês']].map(([k,t])=>`<button class="chip" data-dp="${k}" aria-pressed="${S.dashPer===k}">${t}</button>`).join('')}</div><div id="dashLid"></div><h2>Dia e mês da equipe</h2><div id="painelEquipe"></div><h2>Ranking dos vendedores</h2><div id="rankVend"></div><p class="small muted" style="text-align:center;margin:20px 8px 4px">Nossa missão: ser uma experiência feliz, conveniente e segura no seu caminho.</p>`;
   el.innerHTML=h;
+  const mudaData=v=>{ S.dataRef=(!v||v>=hojeReal())?null:v; DATA_REF=S.dataRef; S.parcSel=null; carregadoRecente={}; vInicio() };
+  if($('#iniData')) $('#iniData').onchange=e=>mudaData(e.target.value); if($('#iniHoje')) $('#iniHoje').onclick=()=>mudaData(null);
   $$('.lt',el).forEach(b=>b.onclick=()=>{S.parcSel=b.dataset.k;vInicio()});
   $$('[data-dp]',el).forEach(b=>b.onclick=()=>{S.dashPer=b.dataset.dp;vInicio()});
   if(sel) $('#btImgHoje').onclick=async()=>{await fontes();mostrarImagem($('#imgHoje'),imgParcial(cfg,S.posto,d.data,sel),`parcial_${S.posto}_${d.data}_${sel.h.replace(':','')}.png`,textoParcial(cfg,d.data,sel),emailDe(cfg))};
@@ -411,7 +413,7 @@ async function marcasDe(p,d){ const k=p+'_'+d; if(!S.marcas) S.marcas={}; if(!S.
 function textoParcial(cfg,data,p){ const v=calc(cfg,p.itens).v; const L=[`*POSTO ${cfg.nome}* – ${dataBR(data)} ${p.h}`,`Líder: ${p.lider?.nome||'–'} (${p.tipo==='fech'?'fecha turno '+cfg.fechamentos[p.turno]:'acompanhamento'})`,''];
   grupo(cfg,'comb').forEach(c=>L.push(`${c.nome}: ${fmtL(v[c.id])} de ${fmtL(c.meta)} L`)); L.push(`*Combustíveis: ${fmtL(somaG(cfg,v,'comb'))} de ${fmtL(metaG(cfg,'comb'))} L*`,'');
   grupo(cfg,'mix').forEach(c=>L.push(`${c.nome}: ${fmtR(v[c.id])} de ${fmtR(c.meta)}`)); L.push(`*Mix produtos: ${fmtR(somaG(cfg,v,'mix'))} de ${fmtR(metaG(cfg,'mix'))}*`);
-  const dm=cfg.duramais; if(dm){const a=v[dm.comum]||0,b=v[dm.dura]||0; L.push('',`Mix Duramais: ${fmtN(a+b?b/(a+b)*100:0,2)}%`)} return L.join('\n') }
+  if(p.obs) L.splice(2,0,'Obs: '+p.obs); const dm=cfg.duramais; if(dm){const a=v[dm.comum]||0,b=v[dm.dura]||0; L.push('',`Mix Duramais: ${fmtN(a+b?b/(a+b)*100:0,2)}%`)} return L.join('\n') }
 async function abrirLider(cfg,id){ const l=(cfg.lideres||[]).find(x=>x.id===id); if(!l) return; const data=hoje(); let mk={}; try{ mk=await marcasDe(cfg.codigo,data) }catch{}
   const obs=obrigHoje(cfg,l,data), d=S.dias[cfg.codigo+'_'+data]; const ps=parciaisOrd(d).filter(p=>p.lider?.id===id); const ts=d?turnos(d).filter(t=>t.lider.id===id):[]; const foto=await fotoDe(cfg.codigo,id);
   const agora=agoraHM(); const st=(o,m)=>m?`<span class="pill ok">feito ${m.h}</span>`:o.hora&&agora>o.hora?`<span class="pill bad">atrasada (até ${o.hora})</span>`:`<span class="pill info">${o.hora?'até '+o.hora:'pendente'}</span>`;
@@ -420,7 +422,7 @@ async function abrirLider(cfg,id){ const l=(cfg.lideres||[]).find(x=>x.id===id);
   const html=`<div class="row">${htmlFoto(foto,l.nome)}<div><h3 style="margin:0">${esc(l.nome)}</h3><span class="small muted">${NOMES_DIA[diaSemana(data)]}, ${dataBR(data)}</span></div></div>
   <h3 style="margin-top:14px">Obrigações de hoje</h3>${obs.length?obs.map(o=>`<label class="ck" style="display:flex;justify-content:space-between;margin-bottom:6px"><span><input type="checkbox" data-ob="${o.id}" ${mk[o.id+'_'+id]?'checked':''}> ${esc(o.nome)}</span><span class="st">${st(o,mk[o.id+'_'+id])}</span></label>`).join(''):'<p class="small muted">Nenhuma obrigação marcada para hoje. Defina em Ajustes › Líderes.</p>'}
   <h3 style="margin-top:14px">Turnos fechados hoje</h3>${ts.length?ts.map(t=>`<div class="small" style="margin-bottom:4px">${minh(t.ini)} às ${t.fim===1440?'23:59':minh(t.fim)}: combustíveis ${pc(t.v,t.m,'comb')}, mix ${pc(t.v,t.m,'mix')} da meta do turno</div>`).join(''):'<p class="small muted">Nenhum turno fechado hoje.</p>'}
-  <h3 style="margin-top:14px">Parciais enviadas hoje</h3>${ps.length?ps.map(p=>{const v=calc(cfg,p.itens).v,f=hmin(p.h);const m=Object.fromEntries(cfg.categorias.map(c=>[c.id,c.meta*share(cfg.codigo,c.id,f)]));return `<div class="small" style="margin-bottom:4px"><b>${p.h}</b> ${p.tipo==='fech'?'fecha turno':'acompanhamento'}: dia em ${pc(v,m,'comb')} comb., ${pc(v,m,'mix')} mix</div>`}).join(''):'<p class="small muted">Nenhuma parcial dele hoje.</p>'}
+  <h3 style="margin-top:14px">Parciais enviadas hoje</h3>${ps.length?ps.map(p=>{const v=calc(cfg,p.itens).v,f=hmin(p.h);const m=Object.fromEntries(cfg.categorias.map(c=>[c.id,c.meta*share(cfg.codigo,c.id,f)]));return `<div class="small" style="margin-bottom:4px"><b>${p.h}</b> ${p.tipo==='fech'?'fecha turno':'acompanhamento'}${p.obs?' <i>('+esc(p.obs)+')</i>':''}: dia em ${pc(v,m,'comb')} comb., ${pc(v,m,'mix')} mix</div>`}).join(''):'<p class="small muted">Nenhuma parcial dele hoje.</p>'}
   <h3 style="margin-top:14px">Equipe e vendas nos turnos dele hoje</h3>${(()=>{ const dv=S.vend[cfg.codigo+'_'+data]; const ag={}; if(dv) vendTurnos(dv,cfg).filter(t=>t.lider.id===id).forEach(t=>{ for(const vd in t.porVd){ const a=ag[vd]=ag[vd]||zeros(cfg); cfg.categorias.forEach(c=>a[c.id]+=t.porVd[vd][c.id]) } });
     const lista=Object.entries(ag).sort((a,b)=>somaG(cfg,b[1],'comb')-somaG(cfg,a[1],'comb'));
     const cad=equipeDoLider(cfg,l).filter(k=>!ag[k.cod]);
@@ -462,14 +464,14 @@ function mostrarLidoVend(){ const R=S.lidoV, box=$('#lido'); const cod=R.posto, 
   <label class="f">Líder responsável<select name="lider"><option value="">Escolha o líder</option>${(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<option value="${l.id}">${esc(l.nome)}</option>`).join('')}</select></label>
   ${novos.length?`<div class="aviso">${novos.length} colaborador(es) novo(s). ${S.canEdit?'Ao salvar, entram em Ajustes › Colaboradores para definir função e horário.':'Peça ao responsável para definir função e horário em Ajustes.'}</div>`:''}
   <div class="scroll"><table class="t"><thead><tr><th>Colaborador</th><th>Combustíveis</th><th>Mix</th></tr></thead><tbody>${linhas.map(x=>`<tr><td>${esc(x.x.nome)}<span class="p muted">${esc(colab(cfg,x.vd)?.funcao||'sem função')}</span></td><td>${fmtUc(somaG(cfg,x.v,'comb'),'L')}</td><td>${fmtUc(somaG(cfg,x.v,'mix'),'R$')}</td></tr>`).join('')}</tbody></table></div>
-  <p class="small muted">Para dividir a venda entre os líderes, envie este relatório também nos fechamentos de turno (06:00, 18:00, 23:59).</p>
+  <label class="f">Observação (opcional)<input name="obs" maxlength="200" placeholder="Ex.: líder trocou o dia com outro"></label><p class="small muted">Para dividir a venda entre os líderes, envie este relatório também nos fechamentos de turno (06:00, 18:00, 23:59).</p>
   <button class="btn orange" data-vsalvar style="width:100%">Salvar vendas por colaborador</button></div>`;
   const card=box.querySelector('[data-vposto]'), f=n=>card.querySelector(`[name="${n}"]`);
   f('tipo').value=tipoPadrao(cfg,f('hora').value); f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value);
   let escolheu=false; f('lider').onchange=()=>{escolheu=true}; f('hora').onchange=()=>{f('tipo').value=tipoPadrao(cfg,f('hora').value); if(!escolheu) f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value)};
   card.querySelector('[data-vsalvar]').onclick=async e=>{ const bt=e.currentTarget, d=f('data').value, h=f('hora').value, t=f('tipo').value, lid=(cfg.lideres||[]).find(l=>l.id===f('lider').value);
     if(!d||!h) return toast('Informe data e horário'); if(!lid) return toast('Escolha o líder responsável');
-    const p={h,tipo:t==='a'?'acomp':'fech',turno:t==='a'?null:+t,lider:{id:lid.id,nome:lid.nome},em:new Date().toISOString(),itens:its.map(i=>({vd:i.vd,s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100}))};
+    const p={h,tipo:t==='a'?'acomp':'fech',turno:t==='a'?null:+t,lider:{id:lid.id,nome:lid.nome},obs:(f('obs')?.value||'').trim(),em:new Date().toISOString(),itens:its.map(i=>({vd:i.vd,s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100}))};
     const nomes=Object.fromEntries(Object.entries(R.vend).map(([vd,x])=>[vd,x.nome])); bt.disabled=true; bt.textContent='Salvando…';
     try{ S.vend[cod+'_'+d]=await Store.salvarVend(cod,d,p,nomes);
       if(S.canEdit&&novos.length){ const c=JSON.parse(JSON.stringify(cfg)); c.colaboradores=c.colaboradores||[]; novos.forEach(vd=>c.colaboradores.push({cod:vd,nome:R.vend[vd].nome,funcao:'',ini:'',fim:'',lider:'',ativo:true})); await Store.salvarCfg(c); S.cfgs[cod]=c; ED=null; }
@@ -531,6 +533,8 @@ function painelHoje(cfg){ const t=hoje(), dd=S.dias[cfg.codigo+'_'+t], td=dd&&to
     const it=(r,v,m)=>`<div style="margin-bottom:6px"><div class="small muted">${r}</div><b style="font:700 21px var(--fd);color:${m?corP(v/m):'inherit'}">${fmtUc(v,un)}</b>${m?` <span class="small" style="font-weight:700;color:${corP(v/m)}">${fmtP(v/m)}</span>`:''}</div>`;
     return `<div class="card"><h3>${rot}</h3><div class="grid3">${it('Meta do dia',md)}${it('Realizado hoje',rd,md)}${it('Projeção do dia',pd,md)}${it('Meta do mês',mm)}${it('Acumulado do mês',rm,mm)}${it('Projeção do mês',pm,mm)}</div></div>` };
   return bloco('comb','L','Combustíveis: hoje e mês')+bloco('mix','R$','Mix de produtos: hoje e mês')+'<p class="small muted">Projeção do dia pelo ritmo até a última parcial; do mês = acumulado + média dos dias × dias que faltam.</p>' }
+const trabalha=(k,d)=>!k?.escala||((+d.slice(8))%2===0)===(k.escala==='par');
+const diasMes=(k,mes)=>{let n=0;for(let d=mes+'-01';d<=fimMes(mes+'-01');d=addDias(d,1)) if(trabalha(k,d)) n++;return n};
 async function vMetas(){ const el=$('#v-metas');
   if(!S.posto||S.posto==='REDE'||!cfgDe(S.posto)){ el.innerHTML='<div class="card vazio">Escolha um posto no topo para ver as metas.</div>'; return }
   el.innerHTML='<p class="muted">Carregando…</p>'; try{ await garantirRecentes() }catch{}
@@ -570,13 +574,19 @@ async function vMetas(){ const el=$('#v-metas');
     h+=`<div class="card"><h3>Definir metas do mês</h3><div class="row"><label class="f" style="max-width:200px">Mês<input type="month" id="mMes" value="${mes}"></label><button class="btn alt sm" id="mCopiar">Copiar do mês anterior</button></div>
     <div class="small muted" style="margin:6px 0">Posto: meta por dia</div><div class="grid2">${cfg.categorias.map(c=>`<label class="f">${esc(c.nome)} (${c.un==='L'?'L':'R$'} por dia)<input data-mc="${c.id}" inputmode="decimal" value="${fmtN(m.cat?.[c.id]??c.meta,2)}"></label>`).join('')}</div>
     <div class="small muted" style="margin:6px 0">Líderes: meta do mês</div>${L.map(l=>ind('lid',l.id,l.nome)).join('')||'<p class="small muted">Sem líderes.</p>'}
-    <div class="small muted" style="margin:6px 0">Vendedores: meta do mês</div>${K.map(k=>ind('col',String(k.cod),k.nome.split(' ').slice(0,2).join(' '))).join('')||'<p class="small muted">Sem colaboradores cadastrados.</p>'}
+    <div class="small muted" style="margin:6px 0">Vendedores: meta do mês</div><button class="btn alt sm" id="mDistrib" style="margin-bottom:6px">Distribuir meta do posto pela escala</button>${K.map(k=>ind('col',String(k.cod),k.nome.split(' ').slice(0,2).join(' ')+' · '+(k.funcao||'sem função')+' · '+diasMes(k,mes)+' dias no mês')).join('')||'<p class="small muted">Sem colaboradores cadastrados.</p>'}
     <button class="btn orange" id="mSalvar" style="width:100%;margin-top:8px">Salvar metas de ${mes.slice(5)}/${mes.slice(0,4)}</button></div>`; }
   el.innerHTML=h;
   $$('[data-mm]',el).forEach(b=>b.onclick=()=>{S.metaMed=b.dataset.mm;vMetas()});
   if(!S.canEdit) return;
   $('#mMes').onchange=()=>{S.metaMesEd=$('#mMes').value;S.metaPre=null;vMetas()};
   $('#mCopiar').onclick=()=>{ const mes=$('#mMes').value; const d=new Date(+mes.slice(0,4),+mes.slice(5,7)-2,1); const ant=`${d.getFullYear()}-${pad(d.getMonth()+1)}`; const o=(cfg.metasMes||{})[ant]; if(!o) return toast('O mês anterior não tem metas salvas'); S.metaPre=JSON.parse(JSON.stringify(o)); vMetas(); toast('Copiado. Confira e salve.') };
+  if($('#mDistrib')) $('#mDistrib').onclick=()=>{ const mes=$('#mMes').value, ini=mes+'-01', nd=nDias(ini,fimMes(ini)); let mc=0,mx=0;
+    $$('[data-mc]',el).forEach(i=>{const c=cfg.categorias.find(x=>x.id===i.dataset.mc); if(!c) return; const v=numBR(i.value)*nd; if(c.grupo==='comb') mc+=v; else mx+=v});
+    let K2=(cfg.colaboradores||[]).filter(k=>k.ativo!==false&&['Frentista','Trocador de óleo'].includes(k.funcao)); if(!K2.length) K2=(cfg.colaboradores||[]).filter(k=>k.ativo!==false);
+    const W=K2.reduce((a,k)=>a+diasMes(k,mes),0); if(!W) return toast('Cadastre colaboradores ativos em Ajustes');
+    K2.forEach(k=>{ const w=diasMes(k,mes)/W; const ic=el.querySelector(`[data-mi="col"][data-id="${k.cod}"][data-k="c"]`), im=el.querySelector(`[data-mi="col"][data-id="${k.cod}"][data-k="m"]`); if(ic) ic.value=fmtN(mc*w,0); if(im) im.value=fmtN(mx*w,2) });
+    toast('Meta distribuída pelos dias de cada um (frentistas e trocadores). Confira e salve.') };
   $('#mSalvar').onclick=async e=>{ const mes=$('#mMes').value; if(!mes) return toast('Escolha o mês'); const o={cat:{},lid:{},col:{}};
     $$('[data-mc]',el).forEach(i=>o.cat[i.dataset.mc]=numBR(i.value)); $$('[data-mi]',el).forEach(i=>{ if(!i.value.trim()) return; const x=o[i.dataset.mi][i.dataset.id]=o[i.dataset.mi][i.dataset.id]||{}; x[i.dataset.k]=numBR(i.value) });
     const c=JSON.parse(JSON.stringify(S.cfgs[S.posto])); c.metasMes=c.metasMes||{}; c.metasMes[mes]=o; const b=e.currentTarget; b.disabled=true; b.textContent='Salvando…';
@@ -616,7 +626,7 @@ function mostrarLido(){ const R=S.lido, box=$('#lido'); const data=R.de||R.emiss
     <div class="grid3"><label class="f">Data<input type="date" name="data" value="${data}"></label><label class="f">Horário<input type="time" name="hora" value="${hora}"></label>
     <label class="f">Tipo<select name="tipo"><option value="a">Acompanhamento</option>${cfg.fechamentos.map((f,i)=>`<option value="${i}">Fecha turno ${f}</option>`).join('')}</select></label></div>
     <label class="f">Líder responsável<select name="lider"><option value="">Escolha o líder</option>${(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<option value="${l.id}">${esc(l.nome)}</option>`).join('')}</select></label>
-    ${R.fonte==='xlsx'?'<p class="small muted" style="margin-top:-4px">A planilha não traz o horário de emissão: confira o horário acima.</p>':''}
+    <label class="f">Observação (opcional)<input name="obs" maxlength="200" placeholder="Ex.: líder trocou o dia com outro"></label>${R.fonte==='xlsx'?'<p class="small muted" style="margin-top:-4px">A planilha não traz o horário de emissão: confira o horário acima.</p>':''}
     ${semCat.length?`<div class="aviso">Setores sem categoria (não entram na parcial): ${semCat.map(([s,v])=>esc(s+' - '+(R.setores[s]||''))+' '+fmtR(v)).join('; ')}. ${S.canEdit?'Marque em Ajustes › Categorias.':'Avise o responsável.'}</div>`:''}
     <div class="scroll prev">${tabelaParcial(cfg,r.v,fim,hora)}</div>
     <div class="row" style="margin-top:12px"><button class="btn orange grow" data-salvar>Salvar e gerar imagem</button></div><div class="saida"></div></div>`; }
@@ -639,7 +649,7 @@ async function salvarLido(card,cod,bt){ const cfg=cfgDe(cod), R=S.lido, f=n=>car
   const itens=R.postos[cod].itens.map(i=>({s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100,k:i.k}));
   const nomes={},setores={}; R.postos[cod].itens.forEach(i=>nomes[i.c]=i.n); Object.entries(R.setores).forEach(([k,v])=>setores[k]=v);
   let por=''; try{ if(USER){const me=await USER.me?.();por=me?.name||''} }catch{}
-  const p={h,tipo:tipo==='a'?'acomp':'fech',turno:tipo==='a'?null:+tipo,lider:{id:lid.id,nome:lid.nome},fonte:R.fonte,em:new Date().toISOString(),por,itens};
+  const p={h,tipo:tipo==='a'?'acomp':'fech',turno:tipo==='a'?null:+tipo,lider:{id:lid.id,nome:lid.nome},fonte:R.fonte,em:new Date().toISOString(),por,obs:(f('obs')?.value||'').trim(),itens};
   bt.disabled=true; bt.textContent='Salvando…';
   try{ const d=await Store.salvarParcial(cod,data,p,nomes,setores); S.dias[cod+'_'+data]=d; montarCurva(cod);
     toast('Parcial salva'); bt.textContent='Salva ✓'; await fontes();
@@ -684,7 +694,7 @@ function imgParcial(cfg,posto,data,p){ const v=calc(cfg,p.itens).v; const fim=(p
     [[X[2],xm,'GASOLINA COMUM','#3A6FD8'],[xm,X[5],'GASOLINA DURAMAIS','#0DA537']].forEach(([a,b,t,bg])=>{g.fillStyle=bg;g.fillRect(a,y,b-a,70);g.strokeRect(a,y,b-a,70);g.fillStyle='#fff';caber(g,t,b-a-20,700,28);g.textAlign='left';g.fillText(t,a+10,y+36)});
     const yy=y+70; [[X[2],xm,fmtN(c1,2)],[xm,X[5],fmtN(c2,2)]].forEach(([a,b,t])=>{g.fillStyle='#fff';g.fillRect(a,yy,b-a,sv);g.strokeRect(a,yy,b-a,sv);g.fillStyle='#111';g.font=`700 30px ${FONT}`;g.textAlign='left';g.fillText(t,a+10,yy+sv/2)});
     g.fillStyle='#C8561B';g.fillRect(X[2],yy+sv,X[5]-X[2],R0);g.strokeRect(X[2],yy+sv,X[5]-X[2],R0);g.fillStyle='#fff';g.font=`700 32px ${FONT}`;g.fillText(fmtN(pc*100,2)+'%',X[2]+10,yy+sv+R0/2); y+=170; }
-  g.fillStyle='#777';g.font=`500 20px ${FONT}`;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(`Relatório B2Click ${p.fonte==='pdf'?'(PDF)':'(planilha)'} · % = realizado ÷ meta proporcional ao horário`,X[0],H-14);
+  g.fillStyle='#777';g.font=`500 20px ${FONT}`;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(`${p.obs?'Obs: '+p.obs+' · ':''}Relatório B2Click ${p.fonte==='pdf'?'(PDF)':'(planilha)'} · % = realizado ÷ meta proporcional ao horário`,X[0],H-14);
   return cv }
 function imgTabela(titulo,sub,cols,linhas){ /* cols:[{t,w}] linhas:[{cel:[[txt,txt2,cor]],tipo}] */
   const W=Math.max(1080,cols.reduce((a,c)=>a+c.w,0)+36), RH=62, H=140+RH*(linhas.length+1)+40; const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
@@ -789,10 +799,10 @@ async function vAjustes(){ const el=$('#v-ajustes'); const ro=!S.canEdit;
   h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Colaboradores</h3>${ro?'':'<button class="btn alt sm" id="kPuxar">Puxar do relatório de vendedores</button>'}</div>
   <p class="small muted">Vêm do relatório de vendedores do B2Click (código). Defina função, horário e líder. “Pelo horário” liga o colaborador ao líder de cada turno que o horário dele cruza — quem trabalha 10h–22h fica com dois líderes.</p>
   ${(ED.colaboradores||[]).length?'':'<p class="small muted">Nenhum colaborador ainda. Envie o relatório de vendedores em Enviar.</p>'}
-  ${(ED.colaboradores||[]).map((k,i)=>`<details class="cat"><summary><span>${esc(k.nome)} <span class="muted small">${esc(k.cod)}</span></span><span class="muted small">${esc(k.funcao||'sem função')} ${k.ini?esc(k.ini+'–'+k.fim):''}</span></summary>
+  ${(ED.colaboradores||[]).map((k,i)=>`<details class="cat"><summary><span>${esc(k.nome)} <span class="muted small">${esc(k.cod)}</span></span><span class="muted small">${esc(k.funcao||'sem função')} ${k.ini?esc(k.ini+'–'+k.fim):''}${k.escala?(k.escala==='par'?' · dias pares':' · dias ímpares'):''}</span></summary>
    <div class="grid2" style="margin-top:10px"><label class="f">Nome<input data-kn="${i}" value="${esc(k.nome)}" ${dis}></label><label class="f">Função<select data-kf="${i}" ${dis}><option value="">—</option>${FUNCOES.map(f=>`<option ${k.funcao===f?'selected':''}>${f}</option>`).join('')}</select></label>
    <label class="f">Entrada<input type="time" data-ki="${i}" value="${esc(k.ini||'')}" ${dis}></label><label class="f">Saída<input type="time" data-ko="${i}" value="${esc(k.fim||'')}" ${dis}></label><label class="f">Meta comb. (L por dia)<input data-kmc="${i}" inputmode="decimal" value="${k.metaComb?fmtN(k.metaComb,0):''}" ${dis}></label><label class="f">Meta mix (R$ por dia)<input data-kmm="${i}" inputmode="decimal" value="${k.metaMix?fmtN(k.metaMix,2):''}" ${dis}></label></div>
-   <label class="f">Líder<select data-kl="${i}" ${dis}>${lidOpt(k.lider)}</select></label><label class="ck"><input type="checkbox" data-ka="${i}" ${k.ativo!==false?'checked':''} ${dis}> ativo</label></details>`).join('')}</div>`;
+   <label class="f">Líder<select data-kl="${i}" ${dis}>${lidOpt(k.lider)}</select></label><label class="f">Escala<select data-ke="${i}" ${dis}>${[['','Todos os dias'],['par','Dias pares'],['impar','Dias ímpares']].map(([v,t])=>`<option value="${v}" ${(k.escala||'')===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="ck"><input type="checkbox" data-ka="${i}" ${k.ativo!==false?'checked':''} ${dis}> ativo</label></details>`).join('')}</div>`;
   h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Obrigações dos líderes</h3>${aplicar('obrigacoes')}</div><p class="small muted">Defina os dias e o horário limite. Em cada líder, marque quais ele cumpre. O líder confirma tocando no card dele no Início.</p>
   ${(ED.obrigacoes||[]).map((o,i)=>`<div class="cat"><div class="grid2"><label class="f">Nome<input data-on="${i}" value="${esc(o.nome)}" ${dis}></label><label class="f">Fazer até<input type="time" data-oh="${i}" value="${esc(o.hora||'')}" ${dis}></label></div><div class="cks">${NOMES_DIA.map((n,dd)=>`<label class="ck"><input type="checkbox" data-od="${i}" value="${dd}" ${(o.dias||[]).includes(dd)?'checked':''} ${dis}>${n.slice(0,3)}</label>`).join('')}</div>${ro?'':`<button class="btn danger sm" data-or="${i}">Remover</button>`}</div>`).join('')}
   ${ro?'':'<button class="btn alt sm" id="oMais">+ obrigação</button>'}</div>`;
@@ -823,7 +833,7 @@ function lerCampos(el){ if(!ED) return; const v=s=>el.querySelector(s);
   if(v('#eMail')) ED.emailPista=v('#eMail').value.trim();
   if(v('#ePin')&&v('#ePin').value.trim()) ED._pinNovo=v('#ePin').value.trim(); if(v('#eTeams')&&v('#eTeams').value.trim()) ED._teamsNovo=v('#eTeams').value.trim();
   const K=ED.colaboradores||[]; $$('[data-kn]',el).forEach(i=>K[+i.dataset.kn].nome=i.value.trim()); $$('[data-kf]',el).forEach(i=>K[+i.dataset.kf].funcao=i.value);
-  $$('[data-ki]',el).forEach(i=>K[+i.dataset.ki].ini=i.value); $$('[data-ko]',el).forEach(i=>K[+i.dataset.ko].fim=i.value); $$('[data-kl]',el).forEach(i=>K[+i.dataset.kl].lider=i.value); $$('[data-ka]',el).forEach(i=>K[+i.dataset.ka].ativo=i.checked); $$('[data-kmc]',el).forEach(i=>K[+i.dataset.kmc].metaComb=numBR(i.value)); $$('[data-kmm]',el).forEach(i=>K[+i.dataset.kmm].metaMix=numBR(i.value));
+  $$('[data-ki]',el).forEach(i=>K[+i.dataset.ki].ini=i.value); $$('[data-ko]',el).forEach(i=>K[+i.dataset.ko].fim=i.value); $$('[data-kl]',el).forEach(i=>K[+i.dataset.kl].lider=i.value); $$('[data-ka]',el).forEach(i=>K[+i.dataset.ka].ativo=i.checked); $$('[data-ke]',el).forEach(i=>K[+i.dataset.ke].escala=i.value); $$('[data-kmc]',el).forEach(i=>K[+i.dataset.kmc].metaComb=numBR(i.value)); $$('[data-kmm]',el).forEach(i=>K[+i.dataset.kmm].metaMix=numBR(i.value));
   $$('[data-leq]',el).forEach(i=>ED.lideres[+i.dataset.leq].equipe=i.value.trim());
   ED.lideres.forEach((l,li)=>{ if(el.querySelector(`[data-lob="${li}"]`)) l.obrig=$$(`[data-lob="${li}"]`,el).filter(x=>x.checked).map(x=>x.value) });
   $$('[data-on]',el).forEach(i=>ED.obrigacoes[+i.dataset.on].nome=i.value.trim());
@@ -876,7 +886,7 @@ function reduzirFoto(f){ return new Promise((res,rej)=>{ const img=new Image(); 
   g.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,s,s); URL.revokeObjectURL(img.src); res(cv.toDataURL('image/jpeg',.8)) }; img.onerror=rej; img.src=URL.createObjectURL(f) }) }
 async function listaParciaisAj(ro){ const box=$('#ajParc'); if(!box) return; const d=S.dias[ED.codigo+'_'+hoje()]; const ps=parciaisOrd(d);
   if(!ps.length){box.innerHTML='<p class="small muted">Nenhuma parcial hoje.</p>';return}
-  box.innerHTML=ps.map(p=>`<div class="row" style="border-bottom:1px solid var(--line);padding:8px 0"><b style="font:700 19px var(--fd);width:54px">${p.h}</b><span class="grow small">${p.tipo==='fech'?'<span class="pill warn">fecha turno</span>':'<span class="pill info">acompanha</span>'} ${esc(p.lider?.nome||'')} <span class="muted">${esc(p.por||'')}</span></span>${ro?'':`<button class="btn danger sm" data-ap-del="${p.h.replace(':','')}">Apagar</button>`}</div>`).join('');
+  box.innerHTML=ps.map(p=>`<div class="row" style="border-bottom:1px solid var(--line);padding:8px 0"><b style="font:700 19px var(--fd);width:54px">${p.h}</b><span class="grow small">${p.tipo==='fech'?'<span class="pill warn">fecha turno</span>':'<span class="pill info">acompanha</span>'} ${esc(p.lider?.nome||'')} <span class="muted">${esc(p.por||'')}${p.obs?' · '+esc(p.obs):''}</span></span>${ro?'':`<button class="btn danger sm" data-ap-del="${p.h.replace(':','')}">Apagar</button>`}</div>`).join('');
   $$('[data-ap-del]',box).forEach(b=>b.onclick=async()=>{ if(!(await confirmar('Apagar esta parcial?','Apagar'))) return; try{ const nd=await Store.apagarParcial(ED.codigo,hoje(),b.dataset.apDel); if(nd) S.dias[ED.codigo+'_'+hoje()]=nd; else delete S.dias[ED.codigo+'_'+hoje()]; toast('Parcial apagada'); listaParciaisAj(ro) }catch{ toast('Não apagou. Confira a internet.') } }) }
 
 /* ---------- navegação ---------- */
@@ -888,7 +898,7 @@ function preencherPostos(){ const s=$('#selPosto'); const cods=Object.keys(S.cfg
 const VIEWS={metas:vMetas,inicio:vInicio,enviar:vEnviar,relatorios:vRelatorios,ajustes:vAjustes};
 function rota(){ let v=(location.hash||'#inicio').slice(1); if(!VIEWS[v]) v='inicio';
   $$('section.v').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); $$('.tabs a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===v)); $$('.tabs a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page')});
-  window.scrollTo(0,0); VIEWS[v]() }
+  window.scrollTo(0,0); DATA_REF=(v==='inicio'||v==='metas')?(S.dataRef||null):null; VIEWS[v]() }
 $('#selPosto').onchange=e=>{S.posto=e.target.value;lsSet('posto',S.posto);S.parcSel=null;ED=null;preencherPostos();rota()};
 addEventListener('hashchange',rota);
 /* ---------- servidor (GitHub Pages + Apps Script) ---------- */
