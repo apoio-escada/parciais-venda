@@ -189,7 +189,8 @@ function lerXLSX(buf, XLSX){
   const wb=XLSX.read(buf,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
   const R=novoResultado('xlsx'); let hi=-1;
-  for(let i=0;i<rows.length && i<30;i++){ const r=rows[i].map(x=>String(x??'').trim().toUpperCase()); if(r.includes('PRODUTO')&&r.includes('QUANTIDADE')){ hi=i; break; } }
+  for(let i=0;i<rows.length && i<30;i++){ const r=rows[i].map(x=>String(x??'').trim().toUpperCase()); if(r.includes('COD_VENDEDOR')&&r.includes('TOTAL')) return lerXLSXVend(rows,i); if(r.includes('PRODUTO')&&r.includes('QUANTIDADE')){ hi=i; break; } }
+  if(hi<0){ for(let i=0;i<rows.length&&i<30;i++){ const r=rows[i].map(x=>String(x??'').trim().toUpperCase()); if(r.includes('COD_VENDEDOR')&&r.includes('TOTAL')) return lerXLSXVend(rows,i); } }
   if(hi<0) throw new Error('Não achei a linha de títulos (Produto, Quantidade, Total) na planilha.');
   const topo=rows.slice(0,hi).flat().filter(Boolean).join('\n'); let m;
   if((m=topo.match(/De:\s*(\d{2}\/\d{2}\/\d{4})\s*at[eé]:\s*(\d{2}\/\d{2}\/\d{4})/i))){ R.de=br2iso(m[1]); R.ate=br2iso(m[2]); }
@@ -209,23 +210,34 @@ function lerXLSX(buf, XLSX){
   if(!R.de && datas.size===1){ R.de=R.ate=[...datas][0]; }
   return R;
 }
+function lerXLSXVend(rows,hi){ const R={fonte:'xlsx',tipo:'vend',de:null,ate:null,emissao:null,posto:null,postoNome:'',vend:{},setores:{},total:null}; let m;
+  const topo=rows.slice(0,hi).flat().filter(Boolean).join('\n');
+  if((m=topo.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})\s*a\s*(\d{2}\/\d{2}\/\d{4})/i))){ R.de=br2iso(m[1]); R.ate=br2iso(m[2]); }
+  if((m=topo.match(/Empresa:\s*(\d+)\s*-\s*([^\n]+)/i))){ R.posto=m[1]; R.postoNome=m[2].trim(); }
+  const H=rows[hi].map(x=>String(x??'').trim().toUpperCase()), col=n=>H.indexOf(n);
+  const cV=col('COD_VENDEDOR'), cNV=col('NOME_VENDEDOR'), cC=col('CODIGO'), cQ=col('QUANTIDADE'), cT=col('TOTAL'); let soma=0;
+  for(let i=hi+1;i<rows.length;i++){ const r=rows[i]; const vd=r[cV], c=r[cC]; if(vd==null||vd===''||isNaN(Number(vd))||c==null||c===''||isNaN(Number(c))) continue;
+    const k=String(Math.round(Number(vd))); if(!R.vend[k]) R.vend[k]={nome:String(r[cNV]||'').trim(),itens:[]};
+    const v=numBR(r[cT]); soma+=v; R.vend[k].itens.push({s:null,c:String(Math.round(Number(c))),q:numBR(r[cQ]),v}); }
+  R.total={v:Math.round(soma*100)/100}; return R; }
 const RX_VPROD=/^(\d{2,})\s+(.+?)\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})$/;
-function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:null,emissao:null,posto:null,postoNome:'',vend:{},setores:{},total:null}; let vd=null,s=null,ult=null;
+function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:null,emissao:null,posto:null,postoNome:'',vend:{},setores:{},total:null}; let vd=null,s=null,ult=null,pend=null;
   for(let l of linhas){ l=l.replace(/\s+/g,' ').trim(); if(!l) continue; let m;
     if((m=l.match(/Emiss[aã]o:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i))) R.emissao={data:br2iso(m[1]),hora:m[2]};
     if((m=l.match(/^Data:\s*(\d{2}\/\d{2}\/\d{4})\s*a\s*(\d{2}\/\d{2}\/\d{4})/i))){ R.de=br2iso(m[1]); R.ate=br2iso(m[2]); continue; }
     if((m=l.match(/^Empresa:\s*(\d+)\s*-\s*(.+)$/i))){ R.posto=m[1]; R.postoNome=m[2].trim(); continue; }
     if((m=l.match(/^VENDEDOR\s+(\d+)\s*-\s*(.+)$/i))){ vd=m[1]; if(!R.vend[vd]) R.vend[vd]={nome:m[2].trim(),itens:[]}; continue; }
     if((m=l.match(/^GRUPO\s+(\d+)\s*-\s*(.+)$/i))){ s=m[1]; R.setores[s]=m[2].trim(); continue; }
-    if((m=l.match(RX_VPROD))&&vd&&s){ R.vend[vd].itens.push({s,c:m[1],q:numBR(m[3]),v:numBR(m[5])}); continue; }
-    if((m=l.match(/^(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})$/))) ult={v:numBR(m[3])};
+    if((m=l.match(RX_VPROD))&&vd){ pend=null; R.vend[vd].itens.push({s,c:m[1],q:numBR(m[3]),v:numBR(m[5])}); continue; }
+    if(vd&&(m=l.match(/^(\d{4,7})\s+(\D.*)$/))&&!/,\d{2}$/.test(l)){ pend={c:m[1]}; continue; }
+    if((m=l.match(/^(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})$/))){ if(pend&&vd){ R.vend[vd].itens.push({s,c:pend.c,q:numBR(m[1]),v:numBR(m[3])}); pend=null; continue; } ult={v:numBR(m[3])}; }
   }
   R.total=ult; return R; }
 // ===== Leitor B2Click (fim) =====
 
 </script>
 <script>
-const VERSAO='2.5.2';
+const VERSAO='2.6.0';
 /* ---------- utilidades ---------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -453,7 +465,7 @@ function sobrepoe(ini,fim,a,b){ const seg=(x,y)=>x<=y?[[x,y]]:[[x,1440],[0,y]]; 
 function equipeDoLider(cfg,l){ const t=l.turno; return (cfg.colaboradores||[]).filter(k=>k.ativo!==false&&(k.lider?k.lider===l.id:(t!=null&&k.ini&&k.fim&&sobrepoe(hmin(k.ini),hmin(k.fim),t?fimFech(cfg,t-1):0,fimFech(cfg,t))))) }
 function mostrarLidoVend(){ const R=S.lidoV, box=$('#lido'); const cod=R.posto, cfg=cfgDe(cod);
   if(!cfg){ box.innerHTML=`<div class="aviso bad">O posto ${esc(cod||'?')} deste relatório não está cadastrado.</div>`; return }
-  const data=R.de||hoje(); const hora=(R.emissao&&R.emissao.data===data)?R.emissao.hora:(data===hoje()?agoraHM():'23:59');
+  const data=R.de||hojeReal(); const hora=(R.emissao&&R.emissao.data===data)?R.emissao.hora:(data===hojeReal()?agoraHM():'23:59');
   const its=Object.entries(R.vend).flatMap(([vd,x])=>x.itens.map(i=>({...i,vd}))); const soma=its.reduce((a,i)=>a+i.v,0); const pv=porVend(cfg,its);
   const novos=Object.keys(R.vend).filter(vd=>!colab(cfg,vd));
   const linhas=Object.entries(R.vend).map(([vd,x])=>({vd,x,v:pv[vd]||zeros(cfg)})).sort((a,b)=>somaG(cfg,b.v,'comb')-somaG(cfg,a.v,'comb'));
@@ -598,28 +610,38 @@ function vEnviar(){ const el=$('#v-enviar');
   if(!Object.keys(S.cfgs).length){ el.innerHTML=`<div class="card vazio"><h3>Cadastre o posto primeiro</h3><a class="btn" href="#ajustes">Abrir ajustes</a></div>`; return }
   el.innerHTML=`<h2>Enviar parcial</h2>
   <label class="drop" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3-3 3 3"/></svg>
-  Anexar relatório do B2Click<span class="small" style="font-weight:500">“Resumo de Produtos Vendidos”, em PDF ou planilha (.xlsx), de um dia só</span><input type="file" id="arq" accept=".pdf,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+  Anexar relatório do B2Click<span class="small" style="font-weight:500">“Resumo de Produtos Vendidos” ou “Comissão sobre vendas por vendedor”, em PDF ou planilha (.xlsx), de um dia só</span><input type="file" id="arq" accept=".pdf,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
   <div id="lido"></div>`;
   $('#arq').onchange=async e=>{const f=e.target.files[0]; if(f) await lerArquivo(f); e.target.value=''};
 }
+const SETOR_FIXO={'10001':'1','10002':'1','10003':'1','10004':'1','10008':'2','20001':'2','100020':'21','100021':'8'};
+function mapaSetores(){ let o={}; try{o=JSON.parse(localStorage.getItem('pv_setores')||'{}')}catch{} for(const d of Object.values(S.dias||{})) for(const p of Object.values(d.parciais||{})) for(const i of (p.itens||[])) if(i.s) o[i.c]=String(i.s); return o }
+function guardarSetores(itens){ try{ const o=JSON.parse(localStorage.getItem('pv_setores')||'{}'); itens.forEach(i=>{ if(i.s) o[i.c]=String(i.s) }); localStorage.setItem('pv_setores',JSON.stringify(o)) }catch{} }
+function setorDe(c,mp){ c=String(c); if(mp[c]) return mp[c]; if(SETOR_FIXO[c]) return SETOR_FIXO[c];
+  if(/^4\d{4}$/.test(c)) return '4'; if(/^5\d{4}$/.test(c)) return '5'; if(/^6\d{4}$/.test(c)) return '6'; if(/^8\d{4}$/.test(c)) return '10'; if(/^21\d{4}$/.test(c)) return '21'; if(/^29\d{4}$/.test(c)) return '29'; return '' }
+const LIBS={pdf:['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'],xlsx:['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js']};
+function carregarScript(u){ return new Promise((ok,erro)=>{ const sc=document.createElement('script'); sc.src=u; sc.onload=ok; sc.onerror=erro; document.head.appendChild(sc); setTimeout(erro,15000) }) }
+async function garantirLib(t){ const tem=()=>t==='pdf'?!!window.pdfjsLib:!!window.XLSX; if(tem()) return true;
+  for(const u of LIBS[t]){ try{ await carregarScript(u); if(tem()){ if(t==='pdf') pdfjsLib.GlobalWorkerOptions.workerSrc=u.replace('pdf.min.js','pdf.worker.min.js'); return true } }catch{} } return tem() }
 async function lerArquivo(f){ const box=$('#lido'); box.innerHTML='<p class="muted">Lendo o relatório…</p>';
   try{ const buf=new Uint8Array(await f.arrayBuffer()); let R;
-    if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){ if(!window.pdfjsLib) throw new Error('O leitor de PDF não carregou. Confira a internet ou use a planilha.'); R=await lerPDF(buf,pdfjsLib); }
-    else { if(!window.XLSX) throw new Error('O leitor de planilha não carregou. Confira a internet.'); R=lerXLSX(buf,XLSX); }
+    if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){ if(!(await garantirLib('pdf'))) throw new Error('O leitor de PDF não carregou. Confira a internet ou use a planilha (.xlsx).'); R=await lerPDF(buf,pdfjsLib); }
+    else { if(!(await garantirLib('xlsx'))) throw new Error('O leitor de planilha não carregou. Confira a internet ou use o PDF.'); R=lerXLSX(buf,XLSX); }
     if(R.tipo!=='vend'&&!Object.keys(R.postos).length) throw new Error('Não encontrei produtos neste arquivo. Confira se é o relatório “Resumo de Produtos Vendidos”.');
     if(R.variasDatas||(R.de&&R.ate&&R.de!==R.ate)) throw new Error('O relatório tem mais de um dia. Gere no B2Click com a data “De” igual à “Até”.');
-    if(R.tipo==='vend'){ if(!Object.keys(R.vend).length) throw new Error('Não encontrei vendedores neste relatório.'); if(R.de&&R.ate&&R.de!==R.ate) throw new Error('O relatório tem mais de um dia. Gere com uma data só.'); S.lidoV=R; mostrarLidoVend(); return; }
+    if(R.tipo!=='vend') guardarSetores(Object.values(R.postos).flatMap(p=>p.itens));
+    if(R.tipo==='vend'){ if(!Object.keys(R.vend).length) throw new Error('Não encontrei vendedores neste relatório.'); { const mp=mapaSetores(); Object.values(R.vend).forEach(x=>x.itens.forEach(i=>{ if(!i.s) i.s=setorDe(i.c,mp) })); } if(!Object.values(R.vend).some(x=>x.itens.length)) throw new Error('Achei os vendedores, mas nenhuma venda. Gere o relatório no modo Analítico.'); if(R.de&&R.ate&&R.de!==R.ate) throw new Error('O relatório tem mais de um dia. Gere com uma data só.'); S.lidoV=R; mostrarLidoVend(); return; }
     S.lido=R; mostrarLido(); }
   catch(err){ box.innerHTML=`<div class="aviso bad">${esc(err.message||'Não consegui ler este arquivo.')}</div>` } }
-function tipoPadrao(cfg,h){ const m=hmin(h); let melhor=null; cfg.fechamentos.forEach((f,i)=>{const dif=Math.abs(hmin(f)-m); if(dif<=45&&(!melhor||dif<melhor.dif)) melhor={i,dif}}); return melhor?String(melhor.i):'a' }
+function tipoPadrao(cfg,h){ const m=hmin(h); let melhor=null; cfg.fechamentos.forEach((f,i)=>{const dif=Math.abs(hmin(f)-m); if(dif<=30&&(!melhor||dif<melhor.dif)) melhor={i,dif}}); return melhor?String(melhor.i):'a' }
 function turnoDaHora(cfg,h){ const m=hmin(h); for(let i=0;i<cfg.fechamentos.length;i++) if(m<=fimFech(cfg,i)) return i; return cfg.fechamentos.length-1 }
 function liderPadrao(cfg,tipo,h){ const t=tipo==='a'?turnoDaHora(cfg,h):+tipo; const l=(cfg.lideres||[]).find(l=>l.ativo!==false&&String(l.turno)===String(t)); return l?l.id:'' }
-function mostrarLido(){ const R=S.lido, box=$('#lido'); const data=R.de||R.emissao?.data||hoje();
+function mostrarLido(){ const R=S.lido, box=$('#lido'); const data=R.de||R.emissao?.data||hojeReal();
   const somaV=Object.values(R.postos).flatMap(p=>p.itens).reduce((a,i)=>a+i.v,0);
   let h=R.total?(Math.abs(somaV-R.total.v)<0.06?`<div class="aviso ok">Conferido: a soma dos ${Object.values(R.postos).reduce((a,p)=>a+p.itens.length,0)} produtos (${fmtR(somaV)}) bate com o total do relatório.</div>`:`<div class="aviso bad">A soma dos produtos (${fmtR(somaV)}) não bate com o total do relatório (${fmtR(R.total.v)}). Confira o arquivo antes de salvar.</div>`):'';
   for(const [cod,p] of Object.entries(R.postos)){ const cfg=cfgMes(cfgDe(cod),R.de||hoje());
     if(!cfg){ h+=`<div class="card"><h3>${esc(cod+' - '+p.nome)}</h3><div class="aviso">Este posto não está cadastrado no app.${S.canEdit?'':' Peça ao responsável para cadastrar.'}</div>${S.canEdit?`<button class="btn sm" data-novo="${esc(cod)}" data-nome="${esc(p.nome)}">Cadastrar com o modelo do Escada BR</button>`:''}</div>`; continue }
-    const hora=(R.emissao&&R.emissao.data===data)?R.emissao.hora:(data===hoje()?agoraHM():'23:59'); const tipo=tipoPadrao(cfg,hora);
+    const hora=(R.emissao&&R.emissao.data===data)?R.emissao.hora:(data===hojeReal()?agoraHM():'23:59'); const tipo=tipoPadrao(cfg,hora);
     const r=calc(cfg,p.itens); const fim=tipo!=='a'&&+tipo===cfg.fechamentos.length-1?1440:hmin(hora);
     const semCat=Object.entries(r.sem).filter(([,v])=>v);
     h+=`<div class="card" data-posto="${esc(cod)}"><h3>${esc(cod+' - '+(cfg.nome||p.nome))}</h3>
