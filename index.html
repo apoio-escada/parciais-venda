@@ -129,6 +129,7 @@ dialog::backdrop{background:rgba(10,16,24,.55)}
 .barras div{flex:1;min-width:6px;border-radius:4px 4px 0 0;position:relative}
 .barras-leg{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
 @media (max-width:420px){ .grid3{grid-template-columns:1fr 1fr} .medidor .num{font-size:38px} }
+.atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:4px 2px 12px}.atalho{display:flex;align-items:center;justify-content:center;text-align:center;min-height:56px;padding:8px 10px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);font-weight:700;text-decoration:none;color:inherit}
 @media print{.tabs,#selPosto,.noprint,.btn,.chips,details,#toast,header .row{display:none!important}body{background:#fff}.card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}h2{break-after:avoid}}
 </style>
 </head>
@@ -238,7 +239,7 @@ function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:nul
 
 </script>
 <script>
-const VERSAO='2.7.0';
+const VERSAO='2.8.0';
 /* ---------- utilidades ---------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -364,7 +365,7 @@ async function vInicio(){ const el=$('#v-inicio');
   if(S.posto==='REDE') return inicioRede(el);
   const cfg=cfgMes(cfgDe(S.posto),hoje()), d=S.dias[S.posto+'_'+hoje()];
   const parc=parciaisOrd(d); const sel=(S.parcSel&&d?.parciais[S.parcSel])||parc[parc.length-1];
-  let h=`<div class="row" style="margin:2px 2px 10px;align-items:flex-end"><label class="f" style="margin:0;max-width:190px">Ver o dia<input type="date" id="iniData" value="${hoje()}" max="${hojeReal()}"></label>${S.dataRef?'<button class="btn alt sm" id="iniHoje">Voltar para hoje</button>':''}<button class="btn alt sm noprint" id="iniPrint">Imprimir</button></div>`;
+  let h=htmlAtalhos(cfg)+`<div class="row" style="margin:2px 2px 10px;align-items:flex-end"><label class="f" style="margin:0;max-width:190px">Ver o dia<input type="date" id="iniData" value="${hoje()}" max="${hojeReal()}"></label>${S.dataRef?'<button class="btn alt sm" id="iniHoje">Voltar para hoje</button>':''}<button class="btn alt sm noprint" id="iniPrint">Imprimir</button></div>`;
   if(!sel){ h+=`<div class="card vazio"><h3>Sem parcial hoje</h3><p>Anexe o relatório do B2Click para ver como o dia está indo.</p>${(()=>{const u=Object.values(S.dias).filter(x=>x.posto===S.posto&&x.data<hoje()&&Object.keys(x.parciais||{}).length).sort((x,y)=>x.data<y.data?-1:1).pop();return u?`<button class="btn sm" id="iniUlt" data-d="${u.data}" style="margin:0 0 10px">Ver a última parcial (${u.data.slice(8)}/${u.data.slice(5,7)})</button><br>`:''})()}<a class="btn orange" href="#enviar">Enviar parcial</a></div>`; }
   else {
     const v=calc(cfg,sel.itens).v; const fim=(sel.tipo==='fech'&&sel.turno===cfg.fechamentos.length-1)?1440:hmin(sel.h);
@@ -477,14 +478,16 @@ function mostrarLidoVend(){ const R=S.lidoV, box=$('#lido'); const cod=R.posto, 
   <label class="f">Líder responsável<select name="lider"><option value="">Escolha o líder</option>${(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<option value="${l.id}">${esc(l.nome)}</option>`).join('')}</select></label>
   ${novos.length?`<div class="aviso">${novos.length} colaborador(es) novo(s). ${S.canEdit?'Ao salvar, entram em Ajustes › Colaboradores para definir função e horário.':'Peça ao responsável para definir função e horário em Ajustes.'}</div>`:''}
   <div class="scroll"><table class="t"><thead><tr><th>Colaborador</th><th>Combustíveis</th><th>Mix</th></tr></thead><tbody>${linhas.map(x=>`<tr><td>${esc(x.x.nome)}<span class="p muted">${esc(colab(cfg,x.vd)?.funcao||'sem função')}</span></td><td>${fmtUc(somaG(cfg,x.v,'comb'),'L')}</td><td>${fmtUc(somaG(cfg,x.v,'mix'),'R$')}</td></tr>`).join('')}</tbody></table></div>
+  <div id="vFolga">${htmlFolgas(cfg,data,pv)}</div>
   <label class="f">Observação (opcional)<input name="obs" maxlength="200" placeholder="Ex.: líder trocou o dia com outro"></label><p class="small muted">Para dividir a venda entre os líderes, envie este relatório também nos fechamentos de turno (06:00, 18:00, 23:59).</p>
   <button class="btn orange" data-vsalvar style="width:100%">Salvar vendas por colaborador</button></div>`;
   const card=box.querySelector('[data-vposto]'), f=n=>card.querySelector(`[name="${n}"]`);
+  f('data').addEventListener('change',()=>{ $('#vFolga',card).innerHTML=htmlFolgas(cfg,f('data').value,pv) });
   f('tipo').value=tipoPadrao(cfg,f('hora').value); f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value);
   let escolheu=false; f('lider').onchange=()=>{escolheu=true}; f('hora').onchange=()=>{f('tipo').value=tipoPadrao(cfg,f('hora').value); if(!escolheu) f('lider').value=liderPadrao(cfg,f('tipo').value,f('hora').value)};
   card.querySelector('[data-vsalvar]').onclick=async e=>{ const bt=e.currentTarget, d=f('data').value, h=f('hora').value, t=f('tipo').value, lid=(cfg.lideres||[]).find(l=>l.id===f('lider').value);
     if(!d||!h) return toast('Informe data e horário'); if(!lid) return toast('Escolha o líder responsável');
-    const p={h,tipo:t==='a'?'acomp':'fech',turno:t==='a'?null:+t,lider:{id:lid.id,nome:lid.nome},obs:(f('obs')?.value||'').trim(),em:new Date().toISOString(),itens:its.map(i=>({vd:i.vd,s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100}))};
+    const p={h,tipo:t==='a'?'acomp':'fech',turno:t==='a'?null:+t,lider:{id:lid.id,nome:lid.nome},obs:(f('obs')?.value||'').trim(),folgas:lerFolgas(card),em:new Date().toISOString(),itens:its.map(i=>({vd:i.vd,s:i.s,c:i.c,q:Math.round(i.q*1000)/1000,v:Math.round(i.v*100)/100}))};
     const nomes=Object.fromEntries(Object.entries(R.vend).map(([vd,x])=>[vd,x.nome])); bt.disabled=true; bt.textContent='Salvando…';
     try{ S.vend[cod+'_'+d]=await Store.salvarVend(cod,d,p,nomes);
       if(S.canEdit&&novos.length){ const c=JSON.parse(JSON.stringify(cfg)); c.colaboradores=c.colaboradores||[]; novos.forEach(vd=>c.colaboradores.push({cod:vd,nome:R.vend[vd].nome,funcao:'',ini:'',fim:'',lider:'',ativo:true})); await Store.salvarCfg(c); S.cfgs[cod]=c; ED=null; }
@@ -546,7 +549,8 @@ function painelHoje(cfg){ const t=hoje(), dd=S.dias[cfg.codigo+'_'+t], td=dd&&to
     const it=(r,v,m)=>`<div style="margin-bottom:6px"><div class="small muted">${r}</div><b style="font:700 21px var(--fd);color:${m?corP(v/m):'inherit'}">${fmtUc(v,un)}</b>${m?` <span class="small" style="font-weight:700;color:${corP(v/m)}">${fmtP(v/m)}</span>`:''}</div>`;
     return `<div class="card"><h3>${rot}</h3><div class="grid3">${it('Meta do dia',md)}${it('Realizado hoje',rd,md)}${it('Projeção do dia',pd,md)}${it('Meta do mês',mm)}${it('Acumulado do mês',rm,mm)}${it('Projeção do mês',pm,mm)}</div></div>` };
   return bloco('comb','L','Combustíveis: hoje e mês')+bloco('mix','R$','Mix de produtos: hoje e mês')+'<p class="small muted">Projeção do dia pelo ritmo até a última parcial; do mês = acumulado + média dos dias × dias que faltam.</p>' }
-const trabalha=(k,d)=>!k?.escala||((+d.slice(8))%2===0)===(k.escala==='par');
+const trabalha=(k,d)=>{ const e=escalaDe(k,d), t=e.tipo||'diario'; if(t==='diario') return true; const dia=+d.slice(8); if(t==='par') return dia%2===0; if(t==='impar') return dia%2===1; if(t==='5x2'){ const ds=diaSemana(d); return ds>=1&&ds<=5 }
+  const c=CICLO[t]; if(!c||!e.base) return true; const n=Math.round((new Date(d+'T12:00:00')-new Date(e.base+'T12:00:00'))/864e5); return ((n%c[0])+c[0])%c[0]<c[1] };
 const diasMes=(k,mes)=>{let n=0;for(let d=mes+'-01';d<=fimMes(mes+'-01');d=addDias(d,1)) if(trabalha(k,d)) n++;return n};
 async function vMetas(){ const el=$('#v-metas');
   if(!S.posto||S.posto==='REDE'||!cfgDe(S.posto)){ el.innerHTML='<div class="card vazio">Escolha um posto no topo para ver as metas.</div>'; return }
@@ -758,6 +762,84 @@ function ligarPlanilha(el,cfg){ const mes=()=>$('#mMes').value;
     S.metaMesEd=prox; S.metaPre={cat:catDeTotais(cfg,prox,r),lid:JSON.parse(JSON.stringify(cfg.metasMes?.[m0]?.lid||{})),col}; S.metaTot=r; S.metaColab=null; vMetas(); toast('Distribuído. Ajuste quem precisar e toque em Salvar.') };
 }
 
+/* ---------- v2.8: escalas, folgas trabalhadas, banco de dias e horas ---------- */
+const ESCALAS=[['diario','Todos os dias'],['par','Dias pares'],['impar','Dias ímpares'],['12x36','12x36 (dia sim, dia não)'],['6x1','6x1 (6 dias e 1 folga)'],['6x2','6x2 (6 dias e 2 folgas)'],['5x2','5x2 (segunda a sexta)']];
+const CICLO={'12x36':[2,1],'6x1':[7,6],'6x2':[8,6]};
+function escList(k){ return k?.escalas?.length?k.escalas:[{desde:'',tipo:k?.escala||'diario',base:''}] }
+function escalaDe(k,d){ const L=escList(k).filter(e=>!e.desde||e.desde<=d).sort((a,b)=>(a.desde||'')<(b.desde||'')?-1:1); return L[L.length-1]||{tipo:'diario'} }
+const nomeEscala=e=>(ESCALAS.find(x=>x[0]===(e?.tipo||'diario'))||ESCALAS[0])[1].split(' (')[0];
+function folgasDoDia(dv){ const o={}; for(const p of parciaisOrd(dv)) for(const f of (p.folgas||[])) o[f.vd]=f; return Object.values(o) }
+function bancoFolgas(cfg,de,ate){ const b={}, regs=[]; const ac=(vd,dd,hh)=>{ const x=b[vd]=b[vd]||{dias:0,horas:0,n:0}; x.dias+=dd; x.horas+=hh; x.n++ };
+  for(let d=de;d<=ate;d=addDias(d,1)){ const dv=S.vend[cfg.codigo+'_'+d]; if(!dv) continue;
+    for(const f of folgasDoDia(dv)){ regs.push({...f,data:d}); if(f.motivo==='troca'){ ac(f.vd,1,0); if(f.com) ac(f.com,-1,0) } else if(f.motivo==='extra') ac(f.vd,0,+f.horas||0); else ac(f.vd,0,0) } }
+  for(const a of (cfg.bancoAjustes||[])) if(a.data>=de&&a.data<=ate){ regs.push({...a,vd:a.cod,motivo:'ajuste'}); ac(a.cod,+a.dias||0,+a.horas||0) }
+  regs.sort((x,y)=>x.data<y.data?1:-1); return {b,regs} }
+const MOTIVO={troca:'Trocou o dia com colega',extra:'Extra (horas a ver)',escala:'Mudou de escala',outro:'Outro',ajuste:'Ajuste do gerente'};
+function htmlFolgas(cfg,data,pv){ const K=(cfg.colaboradores||[]).filter(k=>k.ativo!==false);
+  const fora=Object.keys(pv).filter(vd=>{ const k=colab(cfg,vd); return k&&(somaG(cfg,pv[vd],'comb')>0.5||somaG(cfg,pv[vd],'mix')>0.5)&&!trabalha(k,data) });
+  if(!fora.length) return '';
+  return `<div class="aviso" style="margin-top:10px"><b>${fora.length===1?'1 colaborador vendeu':fora.length+' colaboradores venderam'} em dia de folga pela escala.</b> Diga o que aconteceu para o gerente acompanhar quem tem dias a ver ou está devendo.</div>
+  ${fora.map(vd=>{ const k=colab(cfg,vd); return `<div class="cat" data-fg="${esc(vd)}"><b>${esc(k.nome.split(' ').slice(0,2).join(' '))}</b> <span class="small muted">escala ${esc(nomeEscala(escalaDe(k,data)))}</span>
+    <div class="grid3"><label class="f">O que foi<select data-fgm>${Object.entries(MOTIVO).filter(([m])=>m!=='ajuste').map(([m,t])=>`<option value="${m}">${t}</option>`).join('')}</select></label>
+    <label class="f">Trocou com<select data-fgc><option value="">—</option>${K.filter(x=>String(x.cod)!==vd).map(x=>`<option value="${esc(x.cod)}">${esc(x.nome.split(' ').slice(0,2).join(' '))}</option>`).join('')}</select></label>
+    <label class="f">Horas extras<input data-fgh inputmode="decimal" placeholder="ex.: 8"></label></div>
+    <label class="f">Observação<input data-fgo maxlength="150"></label></div>` }).join('')}` }
+function lerFolgas(box){ return $$('[data-fg]',box).map(c=>({vd:c.dataset.fg,motivo:$('[data-fgm]',c).value,com:$('[data-fgc]',c).value,horas:numBR($('[data-fgh]',c).value),obs:$('[data-fgo]',c).value.trim().slice(0,150)})) }
+function relBanco(out,cfg,de,ate){ const {b,regs}=bancoFolgas(cfg,de,ate); const nome=vd=>(colab(cfg,vd)?.nome||vd).split(' ').slice(0,2).join(' ');
+  const K=[...new Set([...(cfg.colaboradores||[]).filter(k=>k.ativo!==false).map(k=>String(k.cod)),...Object.keys(b)])].sort((x,y)=>nome(x).localeCompare(nome(y)));
+  const sd=v=>v>0?`<span class="pos">+${v} a ver</span>`:v<0?`<span class="neg">${-v} devendo</span>`:'0', sh=v=>v>0?`<span class="pos">${fmtN(v,1)} h a ver</span>`:v<0?`<span class="neg">${fmtN(-v,1)} h a descontar</span>`:'0';
+  out.innerHTML=`<div class="card" style="padding:6px"><div class="scroll"><table class="t"><thead><tr><th>Colaborador</th><th>Escala hoje</th><th>Dias de folga</th><th>Horas extras</th><th>Registros</th></tr></thead><tbody>
+    ${K.map(vd=>{ const x=b[vd]||{dias:0,horas:0,n:0}, k=colab(cfg,vd); return `<tr><td>${esc(nome(vd))}</td><td>${esc(k?nomeEscala(escalaDe(k,hojeReal())):'–')}</td><td>${sd(x.dias)}</td><td>${sh(x.horas)}</td><td>${x.n}</td></tr>` }).join('')}</tbody></table></div></div>
+  <p class="small muted">“A ver” = trabalhou na folga ou fez extra. “Devendo” = folgou no dia de trabalho porque trocou com um colega. Vem do que o líder responde ao enviar o relatório de vendedores.</p>
+  <h3>Registros do período</h3>${regs.length?`<div class="card" style="padding:6px"><div class="scroll"><table class="t small"><thead><tr><th>Data</th><th>Colaborador</th><th>O que foi</th><th>Com quem</th><th>Horas/dias</th><th>Obs.</th></tr></thead><tbody>${regs.map(r=>`<tr><td>${dataBR(r.data)}</td><td>${esc(nome(r.vd))}</td><td>${esc(MOTIVO[r.motivo]||r.motivo)}</td><td>${r.com?esc(nome(r.com)):''}</td><td>${r.motivo==='ajuste'?[r.dias?(r.dias>0?'+':'')+r.dias+' dia(s)':'',r.horas?(r.horas>0?'+':'')+fmtN(r.horas,1)+' h':''].filter(Boolean).join(' '):r.horas?fmtN(r.horas,1)+' h':''}</td><td>${esc(r.obs||'')}</td></tr>`).join('')}</tbody></table></div></div>`:'<p class="small muted">Nenhum registro no período.</p>'}
+  ${S.canEdit?`<div class="card"><h3>Lançar ajuste (folga compensada, horas pagas…)</h3><div class="grid2"><label class="f">Colaborador<select id="bjK">${K.map(vd=>`<option value="${esc(vd)}">${esc(nome(vd))}</option>`).join('')}</select></label><label class="f">Data<input type="date" id="bjD" value="${hojeReal()}"></label>
+    <label class="f">Dias (+ a ver, − compensou)<input id="bjDi" inputmode="decimal" placeholder="ex.: -1"></label><label class="f">Horas (+ a ver, − compensou/pagou)<input id="bjH" inputmode="decimal" placeholder="ex.: -8"></label></div>
+    <label class="f">Observação<input id="bjO" maxlength="150"></label><button class="btn orange" id="bjOk">Lançar</button></div>`:''}`;
+  const ok=$('#bjOk',out); if(ok) ok.onclick=async()=>{ const a={id:uid(),cod:$('#bjK').value,data:$('#bjD').value,dias:numBR($('#bjDi').value),horas:numBR($('#bjH').value),obs:$('#bjO').value.trim()};
+    if(!a.cod||!a.data||(!a.dias&&!a.horas)) return toast('Informe colaborador, data e dias ou horas'); const c=JSON.parse(JSON.stringify(S.cfgs[S.posto])); c.bancoAjustes=[...(c.bancoAjustes||[]),a];
+    ok.disabled=true; try{ await Store.salvarCfg(c); S.cfgs[S.posto]=c; ED=null; toast('Ajuste lançado'); vRelatorios() }catch{ ok.disabled=false; toast('Não salvou. Confira a internet.') } } }
+
+/* ---------- v2.8: resumo com comparativo, acumulado e projeção ---------- */
+function perAnterior(de,ate){ const t=hoje(); if(S.per==='hoje') return [addDias(de,-1),addDias(ate,-1)]; if(S.per==='semana') return [addDias(de,-7),addDias(ate,-7)];
+  if(S.per==='mes'){ const d=new Date(+de.slice(0,4),+de.slice(5,7)-2,1), m0=`${d.getFullYear()}-${pad(d.getMonth()+1)}-01`, f=fimMes(m0); const a=m0.slice(0,8)+ate.slice(8); return [m0,a>f?f:a] }
+  if(S.per==='ano'){ const y=+de.slice(0,4)-1; return [`${y}-01-01`,`${y}${ate.slice(4)}`] } const n=nDias(de,ate); return [addDias(de,-n),addDias(de,-1)] }
+function fimPer(de,ate){ if(S.per==='hoje') return ate; if(S.per==='semana') return addDias(de,6); if(S.per==='mes') return fimMes(de); if(S.per==='ano') return de.slice(0,4)+'-12-31'; return ate }
+function quemOpc(cfg){ return [['posto','Posto todo'],...(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>['l:'+l.id,'Líder: '+l.nome]),...(cfg.colaboradores||[]).filter(k=>k.ativo!==false).map(k=>['c:'+k.cod,'Colaborador: '+k.nome.split(' ').slice(0,2).join(' ')])] }
+function valQuem(cfg,q,de,ate){ if(q==='posto'){ const v=somaPeriodo(cfg.codigo,de,ate), m=zeros(cfg); for(let d=de;d<=ate;d=addDias(d,1)) cfgMes(cfg,d).categorias.forEach(c=>m[c.id]+=c.meta); return {v,m} }
+  if(q.startsWith('l:')){ const a=agregarLideres(cfg.codigo,de,ate)[q.slice(2)]; return {v:a?a.v:zeros(cfg),m:a?a.m:zeros(cfg)} }
+  const vd=q.slice(2), a=colabAgg(cfg,de,ate)[vd], k=colab(cfg,vd), m=zeros(cfg); let mc=0,mx=0;
+  for(let d=de;d<=ate;d=addDias(d,1)){ const mes=d.slice(0,7), dt=diasTrab(cfg,vd,mes,k)||1; if(!trabalha(k,d)) continue; mc+=metaCol(cfg,vd,mes,'comb',k)/dt; grupo(cfg,'mix').forEach(c=>{ const x=metaCol(cfg,vd,mes,c.id,k); m[c.id]+=x/dt }); if(!grupo(cfg,'mix').some(c=>metaCol(cfg,vd,mes,c.id,k))) mx+=metaCol(cfg,vd,mes,'mix',k)/dt }
+  return {v:a?a.v:zeros(cfg),m,mc,mx} }
+function relResumo(out,cfg,de,ate){ const q=S.quem||'posto', mos=S.mostra||{comp:1,acum:1,proj:1}, [pd,pa]=perAnterior(de,ate), fimP=fimPer(de,ate), t=hojeReal();
+  const cur=valQuem(cfg,q,de,ate), ant=valQuem(cfg,q,pd,pa), am=valQuem(cfg,q,ate.slice(0,8)+'01',ate), aa=valQuem(cfg,q,ate.slice(0,5)+'01-01',ate), tot=ate<fimP?valQuem(cfg,q,de,fimP):null;
+  const dU=S.dias[cfg.codigo+'_'+t], uP=ultimo(dU), minU=uP?(uP.tipo==='fech'&&uP.turno===cfg.fechamentos.length-1?1440:hmin(uP.h)):0;
+  const passados=c=>{ let n=0; for(let d=de;d<=ate&&d<t;d=addDias(d,1)) if(ultimo(S.dias[cfg.codigo+'_'+d])) n++; if(ate>=t&&de<=t) n+=minU>=1440?1:share(cfg.codigo,c?c.id:grupo(cfg,'comb')[0].id,minU); return n };
+  const totD=nDias(de,fimP);
+  const lin=[...cfg.categorias.map(c=>({n:c.nome,un:c.un,f:v=>v[c.id]||0,fm:x=>x.m[c.id]||0,c})),{n:'Combustíveis',un:'L',f:v=>somaG(cfg,v,'comb'),fm:x=>x.mc!=null?x.mc:somaG(cfg,x.m,'comb'),g:'comb'},{n:'Mix produtos',un:'R$',f:v=>somaG(cfg,v,'mix'),fm:x=>x.mx?x.mx+somaG(cfg,x.m,'mix'):somaG(cfg,x.m,'mix'),g:'mix'},{n:'Duramais',un:'%',f:v=>valK(cfg,v,'dura')}];
+  const fmt=(x,un)=>un==='%'?fmtN(x*100,2)+'%':fmtUc(x,un);
+  const cols=[{t:'',k:'n'},{t:'Realizado'},{t:'Meta'},{t:'% meta'},...(mos.comp?[{t:'Período anterior'},{t:'Variação'}]:[]),...(mos.acum?[{t:'Acum. mês'},{t:'Acum. ano'}]:[]),...(mos.proj&&tot?[{t:'Projeção '+(S.per==='hoje'?'do dia':S.per==='semana'?'da semana':S.per==='mes'?'do mês':'do ano')},{t:'% proj.'}]:[])];
+  const linhas=lin.map(L=>{ const r=L.f(cur.v), m=L.un==='%'?0:L.fm(cur), a=L.f(ant.v), cel=[L.n,fmt(r,L.un),m?fmt(m,L.un):'–',m?[fmtP(r/m),'',corP(r/m)]:'–'];
+    if(mos.comp){ const dv=L.un==='%'?(r-a)*100:(a?(r-a)/a:null); cel.push(fmt(a,L.un), L.un==='%'?[(dv>=0?'+':'')+fmtN(dv,2)+' p.p.','',dv>=0?'var(--ok)':'var(--bad)']:dv==null?'–':[(dv>=0?'+':'')+fmtP(dv),'',dv>=0?'var(--ok)':'var(--bad)']) }
+    if(mos.acum) cel.push(fmt(L.f(am.v),L.un),fmt(L.f(aa.v),L.un));
+    if(mos.proj&&tot){ if(L.un==='%') cel.push(fmt(r,L.un),'–'); else { const ps=L.c?passados(L.c):passados(null), pr=ps>0.05?r/ps*totD:r, mt=L.fm(tot); cel.push(fmt(pr,L.un),mt?[fmtP(pr/mt),'',corP(pr/mt)]:'–') } }
+    return {cel,tipo:L.g?'tot':''} });
+  const nq=(quemOpc(cfg).find(x=>x[0]===q)||['','Posto todo'])[1];
+  out.innerHTML=`<div class="grid2" style="max-width:640px"><label class="f">Quem<select id="rQ">${quemOpc(cfg).map(([k,n])=>`<option value="${esc(k)}" ${k===q?'selected':''}>${esc(n)}</option>`).join('')}</select></label>
+    <div class="cks" style="align-self:end">${[['comp','Comparativo'],['acum','Acumulado'],['proj','Projeção']].map(([k,n])=>`<label class="ck"><input type="checkbox" data-mo="${k}" ${mos[k]?'checked':''}>${n}</label>`).join('')}</div></div>
+  <div class="card" style="padding:6px"><div class="scroll"><table class="t"><thead><tr>${cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${linhas.map(l=>`<tr class="${l.tipo==='tot'?'sub':''}">${l.cel.map(c=>{const [a,b,cor]=Array.isArray(c)?c:[c];return `<td${cor?` style="color:${cor};font-weight:700"`:''}>${esc(a)}${b?`<span class="p">${esc(b)}</span>`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>
+  <p class="small muted">${esc(nq)} · ${nomePer(de,ate)}. Período anterior: ${nomePer(pd,pa)}. ${tot?'Projeção até '+dataBR(fimP)+' pelo ritmo do período.':''}</p>
+  <div class="row"><button class="btn alt sm" id="rsImg">Imagem para o WhatsApp</button><button class="btn alt sm" id="rsPrint">Imprimir</button></div><div id="rsImgBox"></div>`;
+  $('#rQ',out).onchange=e=>{S.quem=e.target.value;vRelatorios()}; $$('[data-mo]',out).forEach(i=>i.onchange=()=>{ S.mostra={...mos,[i.dataset.mo]:i.checked?1:0}; vRelatorios() });
+  $('#rsPrint',out).onclick=()=>window.print();
+  $('#rsImg',out).onclick=()=>baixarImgTab($('#rsImgBox',out),{titulo:'Resumo – '+cfg.nome,sub:nq+' · '+nomePer(de,ate),cols:cols.map((c,i)=>({t:c.t,w:i?190:260})),linhas:linhas.map(l=>({cel:l.cel.map(c=>Array.isArray(c)?[c[0],'',c[2]]:c),tipo:l.tipo==='tot'?'meta':''}))},`resumo_${cfg.codigo}_${de}_${ate}.png`) }
+
+/* ---------- v2.8: menu inicial (atalhos) ---------- */
+const ATALHOS_PADRAO=[{nome:'Enviar parcial',url:'#enviar'},{nome:'Encerrante ARLA',url:'https://apoio-escada.github.io/encerrante-arla/'},{nome:'Check list',url:''},{nome:'Registrar ocorrência',url:''},{nome:'Observação do dia para o gerente',url:''},{nome:'Recebimento de NF-e (pedidos de compra)',url:''}];
+const atalhosDe=cfg=>cfg?.atalhos||ATALHOS_PADRAO;
+const urlOk=u=>/^https:\/\//i.test(u)||/^#[a-z]+$/.test(u);
+function htmlAtalhos(cfg){ const L=atalhosDe(cfg).filter(a=>a.url&&urlOk(a.url)); if(!L.length) return '';
+  return `<div class="atalhos noprint">${L.map(a=>`<a class="atalho" href="${esc(a.url)}" ${a.url.startsWith('#')?'':'target="_blank" rel="noopener"'}>${esc(a.nome)}</a>`).join('')}</div>` }
+
 /* ---------- enviar ---------- */
 function vEnviar(){ const el=$('#v-enviar');
   if(!Object.keys(S.cfgs).length){ el.innerHTML=`<div class="card vazio"><h3>Cadastre o posto primeiro</h3><a class="btn" href="#ajustes">Abrir ajustes</a></div>`; return }
@@ -887,7 +969,7 @@ function periodo(){ const t=hoje(); if(S.per==='hoje') return [t,t]; if(S.per===
 async function vRelatorios(){ const el=$('#v-relatorios');
   if(!Object.keys(S.cfgs).length){ el.innerHTML=`<div class="card vazio"><h3>Cadastre o posto primeiro</h3><a class="btn" href="#ajustes">Abrir ajustes</a></div>`; return }
   const rede=S.posto==='REDE'; if(rede&&['lider','semana','colab'].includes(S.rel)) S.rel='posto'; if(!rede&&S.rel==='posto') S.rel='lider';
-  const tipos=rede?[['posto','Por posto'],['dia','Por dia']]:[['lider','Por líder'],['colab','Por colaborador'],['dia','Por dia'],['semana','Mesmo dia da semana']];
+  const tipos=rede?[['posto','Por posto'],['dia','Por dia']]:[['resumo','Resumo: comparar, acumular, projetar'],['lider','Por líder'],['colab','Por colaborador'],['dia','Por dia'],['semana','Mesmo dia da semana'],['banco','Folgas e extras']];
   const [de,ate]=periodo();
   el.innerHTML=`<h2>Relatórios</h2><div class="chips" role="group" aria-label="Tipo">${tipos.map(([k,t])=>`<button class="chip" data-r="${k}" aria-pressed="${S.rel===k}">${t}</button>`).join('')}</div>
   ${S.rel==='semana'?`<label class="f" style="max-width:240px;margin-top:8px">Dia da semana<select id="selDs">${NOMES_DIA.map((n,i)=>`<option value="${i}">${n}</option>`).join('')}</select></label>`:
@@ -899,8 +981,9 @@ async function vRelatorios(){ const el=$('#v-relatorios');
   if($('#pDe')){ $('#pDe').onchange=$('#pAte').onchange=()=>{S.perDe=$('#pDe').value;S.perAte=$('#pAte').value;vRelatorios()} }
   if($('#selDs')){ $('#selDs').value=S.ds??diaSemana(hoje()); $('#selDs').onchange=()=>{S.ds=+$('#selDs').value;vRelatorios()} }
   const out=$('#relOut');
-  try{ if(S.rel==='semana') await carregarDias(postosAtivos(),addDias(hoje(),-7*12),hoje()); else await carregarDias(postosAtivos(),de,ate); }
+  try{ if(S.rel==='semana') await carregarDias(postosAtivos(),addDias(hoje(),-7*12),hoje()); else { let ini=de; if(S.rel==='resumo'){ const [pd]=perAnterior(de,ate); ini=[de,pd,ate.slice(0,5)+'01-01'].sort()[0] } await carregarDias(postosAtivos(),ini,ate) } }
   catch{ out.innerHTML='<div class="aviso bad">Não consegui ler os dados. Confira a internet e tente de novo.</div>'; return }
+  if(S.rel==='resumo') return relResumo(out,cfgDe(S.posto),de,ate); if(S.rel==='banco') return relBanco(out,cfgDe(S.posto),de,ate);
   const r=S.rel==='colab'?relColab(de,ate):S.rel==='lider'?relLider(de,ate):S.rel==='dia'?relDia(de,ate):S.rel==='semana'?relSemana():relPosto(de,ate);
   if(!r.linhas.length){ out.innerHTML=`<div class="card vazio">Nenhuma parcial ${S.rel==='lider'?'de fechamento de turno ':''}nesse período.</div>`; return }
   out.innerHTML=`<div class="card" style="padding:6px"><div class="scroll"><table class="t"><thead><tr>${r.cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${r.linhas.map(l=>`<tr class="${l.tipo==='tot'?'sub':''}">${l.cel.map(c=>{const [a,b,cor]=Array.isArray(c)?c:[c];return `<td>${esc(a)}${b?`<span class="p" style="color:${cor||'inherit'}">${esc(b)}</span>`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>
@@ -974,13 +1057,16 @@ async function vAjustes(){ const el=$('#v-ajustes'); const ro=!S.canEdit;
   h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Colaboradores</h3>${ro?'':'<button class="btn alt sm" id="kPuxar">Puxar do relatório de vendedores</button>'}</div>
   <p class="small muted">Vêm do relatório de vendedores do B2Click (código). Defina função, horário e líder. “Pelo horário” liga o colaborador ao líder de cada turno que o horário dele cruza — quem trabalha 10h–22h fica com dois líderes.</p>
   ${(ED.colaboradores||[]).length?'':'<p class="small muted">Nenhum colaborador ainda. Envie o relatório de vendedores em Enviar.</p>'}
-  ${(ED.colaboradores||[]).map((k,i)=>`<details class="cat"><summary><span>${esc(k.nome)} <span class="muted small">${esc(k.cod)}</span></span><span class="muted small">${esc(k.funcao||'sem função')} ${k.ini?esc(k.ini+'–'+k.fim):''}${k.escala?(k.escala==='par'?' · dias pares':' · dias ímpares'):''}</span></summary>
+  ${(ED.colaboradores||[]).map((k,i)=>`<details class="cat" ${S.ajAberto===i?'open':''}><summary><span>${esc(k.nome)} <span class="muted small">${esc(k.cod)}</span></span><span class="muted small">${esc(k.funcao||'sem função')} ${k.ini?esc(k.ini+'–'+k.fim):''}${' · '+esc(nomeEscala(escalaDe(k,hojeReal())))}</span></summary>
    <div class="grid2" style="margin-top:10px"><label class="f">Nome<input data-kn="${i}" value="${esc(k.nome)}" ${dis}></label><label class="f">Função<select data-kf="${i}" ${dis}><option value="">—</option>${FUNCOES.map(f=>`<option ${k.funcao===f?'selected':''}>${f}</option>`).join('')}</select></label>
    <label class="f">Entrada<input type="time" data-ki="${i}" value="${esc(k.ini||'')}" ${dis}></label><label class="f">Saída<input type="time" data-ko="${i}" value="${esc(k.fim||'')}" ${dis}></label><label class="f">Meta comb. (L por dia)<input data-kmc="${i}" inputmode="decimal" value="${k.metaComb?fmtN(k.metaComb,0):''}" ${dis}></label><label class="f">Meta mix (R$ por dia)<input data-kmm="${i}" inputmode="decimal" value="${k.metaMix?fmtN(k.metaMix,2):''}" ${dis}></label></div>
-   <label class="f">Líder a quem pertence<select data-kl="${i}" ${dis}>${lidOpt(k.lider)}</select></label><div class="small muted" style="margin:4px 0 2px">Também trabalha com (líderes do mesmo dia, ex.: 10h–22h começa com um e termina com outro)</div><div class="cks">${(ED.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<label class="ck"><input type="checkbox" data-klx="${i}" value="${l.id}" ${(k.lideres||[]).includes(l.id)?'checked':''} ${dis}>${esc(l.nome)}</label>`).join('')}</div><label class="f">Escala<select data-ke="${i}" ${dis}>${[['','Todos os dias'],['par','Dias pares'],['impar','Dias ímpares']].map(([v,t])=>`<option value="${v}" ${(k.escala||'')===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="ck"><input type="checkbox" data-ka="${i}" ${k.ativo!==false?'checked':''} ${dis}> ativo</label></details>`).join('')}</div>`;
+   <label class="f">Líder a quem pertence<select data-kl="${i}" ${dis}>${lidOpt(k.lider)}</select></label><div class="small muted" style="margin:4px 0 2px">Também trabalha com (líderes do mesmo dia, ex.: 10h–22h começa com um e termina com outro)</div><div class="cks">${(ED.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<label class="ck"><input type="checkbox" data-klx="${i}" value="${l.id}" ${(k.lideres||[]).includes(l.id)?'checked':''} ${dis}>${esc(l.nome)}</label>`).join('')}</div><div class="small muted" style="margin:8px 0 2px">Escala. Mudou no meio do mês? Toque em “+ mudança de escala” e informe a data.</div>${escList(k).map((e,j)=>`<div class="grid3" style="align-items:end"><label class="f">A partir de<input type="date" data-ksd="${i}" data-j="${j}" value="${esc(e.desde||'')}" ${dis}></label><label class="f">Escala<select data-kst="${i}" data-j="${j}" ${dis}>${ESCALAS.map(([v,t])=>`<option value="${v}" ${(e.tipo||'diario')===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="f">1º dia de trabalho do ciclo<input type="date" data-ksb="${i}" data-j="${j}" value="${esc(e.base||'')}" ${dis}></label></div>${!ro&&j?`<button class="btn danger sm" data-ksr="${i}" data-j="${j}">Remover esta mudança</button>`:''}`).join('')}${ro?'':`<button class="btn alt sm" data-ksm="${i}">+ mudança de escala</button>`}<p class="small muted">Em 12x36, 6x1 e 6x2, informe um dia em que a pessoa trabalhou no começo do ciclo: o app conta dali os dias de trabalho e de folga.</p><label class="ck"><input type="checkbox" data-ka="${i}" ${k.ativo!==false?'checked':''} ${dis}> ativo</label></details>`).join('')}</div>`;
   h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Obrigações dos líderes</h3>${aplicar('obrigacoes')}</div><p class="small muted">Defina os dias e o horário limite. Em cada líder, marque quais ele cumpre. O líder confirma tocando no card dele no Início.</p>
   ${(ED.obrigacoes||[]).map((o,i)=>`<div class="cat"><div class="grid2"><label class="f">Nome<input data-on="${i}" value="${esc(o.nome)}" ${dis}></label><label class="f">Fazer até<input type="time" data-oh="${i}" value="${esc(o.hora||'')}" ${dis}></label></div><div class="cks">${NOMES_DIA.map((n,dd)=>`<label class="ck"><input type="checkbox" data-od="${i}" value="${dd}" ${(o.dias||[]).includes(dd)?'checked':''} ${dis}>${n.slice(0,3)}</label>`).join('')}</div>${ro?'':`<button class="btn danger sm" data-or="${i}">Remover</button>`}</div>`).join('')}
   ${ro?'':'<button class="btn alt sm" id="oMais">+ obrigação</button>'}</div>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Menu inicial (atalhos)</h3>${aplicar('atalhos')}</div><p class="small muted">Botões no topo do Início: check list, Encerrante ARLA, ocorrência, observação do dia para o gerente, recebimento de NF-e… Cole o link (https://…). Sem link, o botão não aparece.</p>
+  ${(ED.atalhos||ATALHOS_PADRAO).map((a,i)=>`<div class="grid2" style="align-items:end"><label class="f">Nome<input data-an="${i}" value="${esc(a.nome)}" ${dis}></label><label class="f">Link<input data-au="${i}" value="${esc(a.url)}" placeholder="https://…" ${dis}></label></div>${ro?'':`<button class="btn danger sm" data-atr="${i}">Remover</button>`}`).join('')}
+  ${ro?'':'<button class="btn alt sm" id="atMais">+ atalho</button>'}</div>`;
   h+=`<div class="card"><h3>Parciais de hoje</h3><div id="ajParc"></div></div>`;
   if(!ro) h+=`<div style="position:sticky;bottom:78px;z-index:4;padding:8px 0"><button class="btn orange" id="btSalvarAj" style="width:100%">Salvar alterações</button></div>`;
   el.innerHTML=h; ligarAjustes(el,ro);
@@ -1008,10 +1094,11 @@ function lerCampos(el){ if(!ED) return; const v=s=>el.querySelector(s);
   if(v('#eMail')) ED.emailPista=v('#eMail').value.trim();
   if(v('#ePin')&&v('#ePin').value.trim()) ED._pinNovo=v('#ePin').value.trim(); if(v('#eTeams')&&v('#eTeams').value.trim()) ED._teamsNovo=v('#eTeams').value.trim();
   const K=ED.colaboradores||[]; $$('[data-kn]',el).forEach(i=>K[+i.dataset.kn].nome=i.value.trim()); $$('[data-kf]',el).forEach(i=>K[+i.dataset.kf].funcao=i.value);
-  $$('[data-ki]',el).forEach(i=>K[+i.dataset.ki].ini=i.value); $$('[data-ko]',el).forEach(i=>K[+i.dataset.ko].fim=i.value); $$('[data-kl]',el).forEach(i=>K[+i.dataset.kl].lider=i.value); K.forEach((k,i)=>{ if(el.querySelector(`[data-klx="${i}"]`)) k.lideres=$$(`[data-klx="${i}"]`,el).filter(x=>x.checked).map(x=>x.value) }); $$('[data-ka]',el).forEach(i=>K[+i.dataset.ka].ativo=i.checked); $$('[data-ke]',el).forEach(i=>K[+i.dataset.ke].escala=i.value); $$('[data-kmc]',el).forEach(i=>K[+i.dataset.kmc].metaComb=numBR(i.value)); $$('[data-kmm]',el).forEach(i=>K[+i.dataset.kmm].metaMix=numBR(i.value));
+  $$('[data-ki]',el).forEach(i=>K[+i.dataset.ki].ini=i.value); $$('[data-ko]',el).forEach(i=>K[+i.dataset.ko].fim=i.value); $$('[data-kl]',el).forEach(i=>K[+i.dataset.kl].lider=i.value); K.forEach((k,i)=>{ const ss=$$(`[data-kst="${i}"]`,el); if(ss.length){ k.escalas=ss.map(x=>({desde:el.querySelector(`[data-ksd="${i}"][data-j="${x.dataset.j}"]`).value,tipo:x.value,base:el.querySelector(`[data-ksb="${i}"][data-j="${x.dataset.j}"]`).value})); k.escala='' } }); K.forEach((k,i)=>{ if(el.querySelector(`[data-klx="${i}"]`)) k.lideres=$$(`[data-klx="${i}"]`,el).filter(x=>x.checked).map(x=>x.value) }); $$('[data-ka]',el).forEach(i=>K[+i.dataset.ka].ativo=i.checked); $$('[data-ke]',el).forEach(i=>K[+i.dataset.ke].escala=i.value); $$('[data-kmc]',el).forEach(i=>K[+i.dataset.kmc].metaComb=numBR(i.value)); $$('[data-kmm]',el).forEach(i=>K[+i.dataset.kmm].metaMix=numBR(i.value));
   $$('[data-leq]',el).forEach(i=>ED.lideres[+i.dataset.leq].equipe=i.value.trim());
   ED.lideres.forEach((l,li)=>{ if(el.querySelector(`[data-lob="${li}"]`)) l.obrig=$$(`[data-lob="${li}"]`,el).filter(x=>x.checked).map(x=>x.value) });
   $$('[data-on]',el).forEach(i=>ED.obrigacoes[+i.dataset.on].nome=i.value.trim());
+  if(el.querySelector('[data-an]')) ED.atalhos=$$('[data-an]',el).map(i=>({nome:i.value.trim(),url:el.querySelector(`[data-au="${i.dataset.an}"]`).value.trim()}));
   $$('[data-oh]',el).forEach(i=>ED.obrigacoes[+i.dataset.oh].hora=i.value);
   (ED.obrigacoes||[]).forEach((o,oi)=>{ if(el.querySelector(`[data-od="${oi}"]`)) o.dias=$$(`[data-od="${oi}"]`,el).filter(x=>x.checked).map(x=>+x.value) });
   if(v('#dmC')) ED.duramais={comum:v('#dmC').value,dura:v('#dmD').value};
@@ -1027,6 +1114,10 @@ function ligarAjustes(el,ro){ if(ro) return; const re=()=>{lerCampos(el);vAjuste
     for(const dv of Object.values(S.vend)) if(dv.posto===ED.codigo) for(const [vd,nm] of Object.entries(dv.nomes||{})) if(!ED.colaboradores.some(k=>String(k.cod)===vd)){ ED.colaboradores.push({cod:vd,nome:nm,funcao:'',ini:'',fim:'',lider:'',ativo:true}); n++ }
     if(S.lidoV&&S.lidoV.posto===ED.codigo) for(const [vd,x] of Object.entries(S.lidoV.vend)) if(!ED.colaboradores.some(k=>String(k.cod)===vd)){ ED.colaboradores.push({cod:vd,nome:x.nome,funcao:'',ini:'',fim:'',lider:'',ativo:true}); n++ }
     toast(n?`${n} colaborador(es) incluído(s). Salve as alterações.`:'Nenhum colaborador novo.'); vAjustes() });
+  on('#atMais',()=>{lerCampos(el);ED.atalhos=[...(ED.atalhos||ATALHOS_PADRAO.map(a=>({...a}))),{nome:'Novo atalho',url:''}];vAjustes()});
+  $$('[data-atr]',el).forEach(b=>b.onclick=()=>{lerCampos(el);ED.atalhos=(ED.atalhos||ATALHOS_PADRAO.map(a=>({...a})));ED.atalhos.splice(+b.dataset.atr,1);vAjustes()});
+  $$('[data-ksm]',el).forEach(b=>b.onclick=()=>{ lerCampos(el); const k=ED.colaboradores[+b.dataset.ksm]; k.escalas=escList(k).map(x=>({...x})); k.escalas.push({desde:hojeReal(),tipo:'12x36',base:hojeReal()}); S.ajAberto=+b.dataset.ksm; vAjustes() });
+  $$('[data-ksr]',el).forEach(b=>b.onclick=()=>{ lerCampos(el); const k=ED.colaboradores[+b.dataset.ksr]; k.escalas.splice(+b.dataset.j,1); S.ajAberto=+b.dataset.ksr; vAjustes() });
   on('#oMais',()=>{lerCampos(el);ED.obrigacoes.push({id:'o'+uid().slice(0,5),nome:'Nova obrigação',dias:[0,1,2,3,4,5,6],hora:''});vAjustes()});
   $$('[data-or]',el).forEach(b=>b.onclick=async()=>{lerCampos(el);if(await confirmar('Remover esta obrigação?','Remover')){ED.obrigacoes.splice(+b.dataset.or,1);vAjustes()}});
   on('#cMais',()=>{lerCampos(el);ED.categorias.push({id:'c'+uid().slice(0,4),nome:'Nova categoria',grupo:'mix',un:'R$',produtos:[],setores:[],meta:0});S.catAberta=ED.categorias.length-1;vAjustes()});
@@ -1045,7 +1136,7 @@ function ligarAjustes(el,ro){ if(ro) return; const re=()=>{lerCampos(el);vAjuste
     try{ await Store.salvarCfg(ED); S.cfgs[ED.codigo]=JSON.parse(JSON.stringify(ED)); montarCurva(ED.codigo); preencherPostos(); toast('Alterações salvas'); }catch{ toast('Não salvou. Confira a internet.') }
     b.disabled=false;b.textContent='Salvar alterações' });
 }
-async function aplicarOutros(sec){ const outros=Object.values(S.cfgs).filter(c=>c.codigo!==ED.codigo); const nomes={fechamentos:'horários de fechamento',lideres:'líderes',categorias:'categorias e metas',obrigacoes:'obrigações'};
+async function aplicarOutros(sec){ const outros=Object.values(S.cfgs).filter(c=>c.codigo!==ED.codigo); const nomes={fechamentos:'horários de fechamento',lideres:'líderes',categorias:'categorias e metas',obrigacoes:'obrigações',atalhos:'atalhos do menu inicial'};
   const extra=sec==='lideres'?`<label class="f">Como copiar<select id="apM"><option value="add">Acrescentar os que faltam</option><option value="sub">Substituir a lista</option></select></label>`:sec==='categorias'?`<label class="ck" style="margin-bottom:8px"><input type="checkbox" id="apMeta" checked> copiar também as metas</label>`:'';
   const r=await dialogo(`<h3>Aplicar ${nomes[sec]} a outros postos</h3><label class="ck" style="margin:6px 0"><input type="checkbox" id="apTodos"> Todos</label><div class="cks">${outros.map(c=>`<label class="ck"><input type="checkbox" data-ao="${esc(c.codigo)}">${esc(c.codigo+' - '+c.nome)}</label>`).join('')}</div>${extra}<p class="small muted">Os postos marcados recebem o que está na tela agora (mesmo sem salvar).</p>`,
     [{t:'Cancelar',cls:'alt',v:null},{t:'Aplicar',ler:d=>({ps:$$('[data-ao]',d).filter(x=>x.checked||$('#apTodos',d).checked).map(x=>x.dataset.ao),m:$('#apM',d)?.value,meta:$('#apMeta',d)?.checked})}]);
@@ -1053,6 +1144,7 @@ async function aplicarOutros(sec){ const outros=Object.values(S.cfgs).filter(c=>
   for(const p of r.ps){ const c=JSON.parse(JSON.stringify(S.cfgs[p]));
     if(sec==='fechamentos') c.fechamentos=[...ED.fechamentos];
     if(sec==='obrigacoes') c.obrigacoes=JSON.parse(JSON.stringify(ED.obrigacoes||[]));
+    if(sec==='atalhos') c.atalhos=JSON.parse(JSON.stringify(ED.atalhos||ATALHOS_PADRAO));
     if(sec==='lideres'){ if(r.m==='sub') c.lideres=JSON.parse(JSON.stringify(ED.lideres)); else ED.lideres.forEach(l=>{ if(!c.lideres.some(x=>x.nome.toLowerCase()===l.nome.toLowerCase())) c.lideres.push({...l,id:uid()}) }) }
     if(sec==='categorias'){ const antigas=Object.fromEntries(c.categorias.map(x=>[x.id,x])); c.categorias=ED.categorias.map(x=>({...JSON.parse(JSON.stringify(x)),meta:r.meta?x.meta:(antigas[x.id]?.meta??x.meta)})); c.duramais={...ED.duramais} }
     await Store.salvarCfg(c); S.cfgs[p]=c; }
