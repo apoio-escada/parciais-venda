@@ -129,6 +129,7 @@ dialog::backdrop{background:rgba(10,16,24,.55)}
 .barras div{flex:1;min-width:6px;border-radius:4px 4px 0 0;position:relative}
 .barras-leg{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
 @media (max-width:420px){ .grid3{grid-template-columns:1fr 1fr} .medidor .num{font-size:38px} }
+@media print{.tabs,#selPosto,.noprint,.btn,.chips,details,#toast,header .row{display:none!important}body{background:#fff}.card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}h2{break-after:avoid}}
 </style>
 </head>
 <body>
@@ -237,7 +238,7 @@ function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:nul
 
 </script>
 <script>
-const VERSAO='2.6.0';
+const VERSAO='2.7.0';
 /* ---------- utilidades ---------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -363,7 +364,7 @@ async function vInicio(){ const el=$('#v-inicio');
   if(S.posto==='REDE') return inicioRede(el);
   const cfg=cfgMes(cfgDe(S.posto),hoje()), d=S.dias[S.posto+'_'+hoje()];
   const parc=parciaisOrd(d); const sel=(S.parcSel&&d?.parciais[S.parcSel])||parc[parc.length-1];
-  let h=`<div class="row" style="margin:2px 2px 10px;align-items:flex-end"><label class="f" style="margin:0;max-width:190px">Ver o dia<input type="date" id="iniData" value="${hoje()}" max="${hojeReal()}"></label>${S.dataRef?'<button class="btn alt sm" id="iniHoje">Voltar para hoje</button>':''}</div>`;
+  let h=`<div class="row" style="margin:2px 2px 10px;align-items:flex-end"><label class="f" style="margin:0;max-width:190px">Ver o dia<input type="date" id="iniData" value="${hoje()}" max="${hojeReal()}"></label>${S.dataRef?'<button class="btn alt sm" id="iniHoje">Voltar para hoje</button>':''}<button class="btn alt sm noprint" id="iniPrint">Imprimir</button></div>`;
   if(!sel){ h+=`<div class="card vazio"><h3>Sem parcial hoje</h3><p>Anexe o relatório do B2Click para ver como o dia está indo.</p>${(()=>{const u=Object.values(S.dias).filter(x=>x.posto===S.posto&&x.data<hoje()&&Object.keys(x.parciais||{}).length).sort((x,y)=>x.data<y.data?-1:1).pop();return u?`<button class="btn sm" id="iniUlt" data-d="${u.data}" style="margin:0 0 10px">Ver a última parcial (${u.data.slice(8)}/${u.data.slice(5,7)})</button><br>`:''})()}<a class="btn orange" href="#enviar">Enviar parcial</a></div>`; }
   else {
     const v=calc(cfg,sel.itens).v; const fim=(sel.tipo==='fech'&&sel.turno===cfg.fechamentos.length-1)?1440:hmin(sel.h);
@@ -374,15 +375,15 @@ async function vInicio(){ const el=$('#v-inicio');
     h+=`<div class="card" style="padding:6px 6px 2px"><div class="scroll">${tabelaParcial(cfg,v,fim,sel.h)}</div></div>`;
     h+=`<div class="row" style="margin-bottom:6px"><button class="btn alt sm" id="btImgHoje">Imagem para o WhatsApp</button></div><div id="imgHoje"></div>`;
   }
-  h+=`<h2>Posto: realizado × meta</h2><div id="painelPosto"></div><h2>Líderes</h2><div class="chips" role="group" aria-label="Período">${[['hoje','Hoje'],['7','7 dias'],['mes','Este mês']].map(([k,t])=>`<button class="chip" data-dp="${k}" aria-pressed="${S.dashPer===k}">${t}</button>`).join('')}</div><div id="dashLid"></div><h2>Dia e mês da equipe</h2><div id="painelEquipe"></div><h2>Ranking dos vendedores</h2><div id="rankVend"></div><p class="small muted" style="text-align:center;margin:20px 8px 4px">Nossa missão: ser uma experiência feliz, conveniente e segura no seu caminho.</p>`;
+  h+=`<h2>Por líder</h2><div class="chips" role="group" aria-label="Período">${[['hoje','Hoje'],['7','7 dias'],['mes','Este mês']].map(([k,t])=>`<button class="chip" data-dp="${k}" aria-pressed="${S.dashPer===k}">${t}</button>`).join('')}</div><div id="dashCat"></div><div id="dashLid"></div><h2>Melhores vendedores por produto</h2><div id="rankVend"></div>${sel?'<h2>Colaboradores nesta parcial</h2><div id="colParc"></div>':''}<h2>Colaboradores: meta × vendas</h2><div id="listaMV"></div><h2>Posto: realizado × meta</h2><div id="painelPosto"></div><h2>Dia e mês da equipe</h2><div id="painelEquipe"></div><p class="small muted" style="text-align:center;margin:20px 8px 4px">Nossa missão: ser uma experiência feliz, conveniente e segura no seu caminho.</p>`;
   el.innerHTML=h;
   const mudaData=v=>{ S.dataRef=(!v||v>=hojeReal())?null:v; DATA_REF=S.dataRef; S.parcSel=null; carregadoRecente={}; vInicio() };
-  if($('#iniData')) $('#iniData').onchange=e=>mudaData(e.target.value); if($('#iniHoje')) $('#iniHoje').onclick=()=>mudaData(null); if($('#iniUlt')) $('#iniUlt').onclick=e=>mudaData(e.currentTarget.dataset.d);
+  if($('#iniData')) $('#iniData').onchange=e=>mudaData(e.target.value); if($('#iniHoje')) $('#iniHoje').onclick=()=>mudaData(null); if($('#iniUlt')) $('#iniUlt').onclick=e=>mudaData(e.currentTarget.dataset.d); if($('#iniPrint')) $('#iniPrint').onclick=()=>window.print();
   $$('.lt',el).forEach(b=>b.onclick=()=>{S.parcSel=b.dataset.k;vInicio()});
   $$('[data-dp]',el).forEach(b=>b.onclick=()=>{S.dashPer=b.dataset.dp;vInicio()});
   if(sel) $('#btImgHoje').onclick=async()=>{await fontes();mostrarImagem($('#imgHoje'),imgParcial(cfg,S.posto,d.data,sel),`parcial_${S.posto}_${d.data}_${sel.h.replace(':','')}.png`,textoParcial(cfg,d.data,sel),emailDe(cfg))};
   painelPosto($('#painelPosto'),cfg); painelEquipe($('#painelEquipe'),cfg); rankVend($('#rankVend'),cfg);
-  dashLideres($('#dashLid'),cfg);
+  dashLideres($('#dashLid'),cfg); dashCat($('#dashCat'),cfg); listaMV($('#listaMV'),cfg); if(sel&&$('#colParc')) colabParcial($('#colParc'),cfg,d.data,sel.h);
 }
 function tabelaParcial(cfg,v,fim,h){ const linha=(c)=>{const r=v[c.id]||0, ma=c.meta*share(cfg.codigo,c.id,fim), p=ma?r/ma:0; return `<tr><td>${esc(c.nome)}</td><td>${fmtU(r,c.un)}</td><td>${fmtU(c.meta,c.un)}</td><td class="${r-c.meta>=0?'pos':'neg'}">${sinal(r-c.meta,c.un)}</td><td style="color:${corP(p)};font-weight:700">${fmtP(p)}</td></tr>`};
   const sub=(g,nome,cls)=>{const r=somaG(cfg,v,g), m=metaG(cfg,g), ma=metaG(cfg,g,c=>share(cfg.codigo,c.id,fim)), p=ma?r/ma:0; const un=g==='comb'?'L':'R$'; return `<tr class="${cls}"><td>${nome}</td><td>${fmtU(r,un)}</td><td>${fmtU(m,un)}</td><td class="${r-m>=0?'pos':'neg'}">${sinal(r-m,un)}</td><td style="color:${corP(p)}">${fmtP(p)}</td></tr>`};
@@ -462,7 +463,7 @@ function vendTurnos(dv,cfg){ const porT=fechPorTurno(dv); const out=[]; let prev
 const colab=(cfg,vd)=>(cfg.colaboradores||[]).find(x=>String(x.cod)===String(vd));
 const nomeVend=(cfg,vd,dv)=>colab(cfg,vd)?.nome||dv?.nomes?.[vd]||('Vendedor '+vd);
 function sobrepoe(ini,fim,a,b){ const seg=(x,y)=>x<=y?[[x,y]]:[[x,1440],[0,y]]; return seg(ini,fim).some(([x,y])=>seg(a,b).some(([p,q])=>x<q&&p<y)) }
-function equipeDoLider(cfg,l){ const t=l.turno; return (cfg.colaboradores||[]).filter(k=>k.ativo!==false&&(k.lider?k.lider===l.id:(t!=null&&k.ini&&k.fim&&sobrepoe(hmin(k.ini),hmin(k.fim),t?fimFech(cfg,t-1):0,fimFech(cfg,t))))) }
+function equipeDoLider(cfg,l){ const t=l.turno; return (cfg.colaboradores||[]).filter(k=>k.ativo!==false&&((k.lideres||[]).includes(l.id)||k.lider?k.lider===l.id:(t!=null&&k.ini&&k.fim&&sobrepoe(hmin(k.ini),hmin(k.fim),t?fimFech(cfg,t-1):0,fimFech(cfg,t))))) }
 function mostrarLidoVend(){ const R=S.lidoV, box=$('#lido'); const cod=R.posto, cfg=cfgDe(cod);
   if(!cfg){ box.innerHTML=`<div class="aviso bad">O posto ${esc(cod||'?')} deste relatório não está cadastrado.</div>`; return }
   const data=R.de||hojeReal(); const hora=(R.emissao&&R.emissao.data===data)?R.emissao.hora:(data===hojeReal()?agoraHM():'23:59');
@@ -586,23 +587,175 @@ async function vMetas(){ const el=$('#v-metas');
     h+=`<div class="card"><h3>Definir metas do mês</h3><div class="row"><label class="f" style="max-width:200px">Mês<input type="month" id="mMes" value="${mes}"></label><button class="btn alt sm" id="mCopiar">Copiar do mês anterior</button></div>
     <div class="small muted" style="margin:6px 0">Posto: meta por dia</div><div class="grid2">${cfg.categorias.map(c=>`<label class="f">${esc(c.nome)} (${c.un==='L'?'L':'R$'} por dia)<input data-mc="${c.id}" inputmode="decimal" value="${fmtN(m.cat?.[c.id]??c.meta,2)}"></label>`).join('')}</div>
     <div class="small muted" style="margin:6px 0">Líderes: meta do mês</div>${L.map(l=>ind('lid',l.id,l.nome)).join('')||'<p class="small muted">Sem líderes.</p>'}
-    <div class="small muted" style="margin:6px 0">Vendedores: meta do mês</div><button class="btn alt sm" id="mDistrib" style="margin-bottom:6px">Distribuir meta do posto pela escala</button>${K.map(k=>ind('col',String(k.cod),k.nome.split(' ').slice(0,2).join(' ')+' · '+(k.funcao||'sem função')+' · '+diasMes(k,mes)+' dias no mês')).join('')||'<p class="small muted">Sem colaboradores cadastrados.</p>'}
+    ${blocoPlanilha(cfg,mes,m)}<button class="btn alt sm" id="mDistrib" style="margin-top:6px">Distribuir meta do posto pelos dias de cada um</button>
     <button class="btn orange" id="mSalvar" style="width:100%;margin-top:8px">Salvar metas de ${mes.slice(5)}/${mes.slice(0,4)}</button></div>`; }
   el.innerHTML=h;
   $$('[data-mm]',el).forEach(b=>b.onclick=()=>{S.metaMed=b.dataset.mm;vMetas()});
   if(!S.canEdit) return;
-  $('#mMes').onchange=()=>{S.metaMesEd=$('#mMes').value;S.metaPre=null;vMetas()};
+  $('#mMes').onchange=()=>{S.metaMesEd=$('#mMes').value;S.metaPre=null;S.metaColab=null;S.metaTot=null;vMetas()}; ligarPlanilha(el,cfg);
   $('#mCopiar').onclick=()=>{ const mes=$('#mMes').value; const d=new Date(+mes.slice(0,4),+mes.slice(5,7)-2,1); const ant=`${d.getFullYear()}-${pad(d.getMonth()+1)}`; const o=(cfg.metasMes||{})[ant]; if(!o) return toast('O mês anterior não tem metas salvas'); S.metaPre=JSON.parse(JSON.stringify(o)); vMetas(); toast('Copiado. Confira e salve.') };
   if($('#mDistrib')) $('#mDistrib').onclick=()=>{ const mes=$('#mMes').value, ini=mes+'-01', nd=nDias(ini,fimMes(ini)); let mc=0,mx=0;
     $$('[data-mc]',el).forEach(i=>{const c=cfg.categorias.find(x=>x.id===i.dataset.mc); if(!c) return; const v=numBR(i.value)*nd; if(c.grupo==='comb') mc+=v; else mx+=v});
     let K2=(cfg.colaboradores||[]).filter(k=>k.ativo!==false&&['Frentista','Trocador de óleo'].includes(k.funcao)); if(!K2.length) K2=(cfg.colaboradores||[]).filter(k=>k.ativo!==false);
     const W=K2.reduce((a,k)=>a+diasMes(k,mes),0); if(!W) return toast('Cadastre colaboradores ativos em Ajustes');
-    K2.forEach(k=>{ const w=diasMes(k,mes)/W; const ic=el.querySelector(`[data-mi="col"][data-id="${k.cod}"][data-k="c"]`), im=el.querySelector(`[data-mi="col"][data-id="${k.cod}"][data-k="m"]`); if(ic) ic.value=fmtN(mc*w,0); if(im) im.value=fmtN(mx*w,2) });
+    const tm={}; $$('[data-mc]',el).forEach(i=>{ if(['lub','adt','car','arla','pec'].includes(i.dataset.mc)) tm[i.dataset.mc]=numBR(i.value)*nd });
+    K2.forEach(k=>{ const w=diasMes(k,mes)/W, put=(q,v)=>{ const x=el.querySelector(`[data-mv="${k.cod}"][data-k="${q}"]`); if(x) x.value=fmtN(v,0) }; put('c',mc*w); for(const q in tm) put(q,tm[q]*w); put('dias',diasMes(k,mes)) });
     toast('Meta distribuída pelos dias de cada um (frentistas e trocadores). Confira e salve.') };
   $('#mSalvar').onclick=async e=>{ const mes=$('#mMes').value; if(!mes) return toast('Escolha o mês'); const o={cat:{},lid:{},col:{}};
     $$('[data-mc]',el).forEach(i=>o.cat[i.dataset.mc]=numBR(i.value)); $$('[data-mi]',el).forEach(i=>{ if(!i.value.trim()) return; const x=o[i.dataset.mi][i.dataset.id]=o[i.dataset.mi][i.dataset.id]||{}; x[i.dataset.k]=numBR(i.value) });
-    const c=JSON.parse(JSON.stringify(S.cfgs[S.posto])); c.metasMes=c.metasMes||{}; c.metasMes[mes]=o; const b=e.currentTarget; b.disabled=true; b.textContent='Salvando…';
-    try{ await Store.salvarCfg(c); S.cfgs[S.posto]=c; _cm.clear(); ED=null; S.metaPre=null; toast('Metas salvas'); vMetas() }catch{ b.disabled=false; b.textContent='Salvar metas'; toast('Não salvou. Confira a internet.') } };
+    const fc=lerFormCol(el); for(const cod in fc){ const x=fc[cod]; x.m=['lub','adt','car','arla','pec'].reduce((a,q)=>a+(+x[q]||0),0); o.col[cod]=x }
+    const c=JSON.parse(JSON.stringify(S.cfgs[S.posto])); c.metasMes=c.metasMes||{}; c.metasMes[mes]=o;
+    if(S.metaColab){ c.colaboradores=c.colaboradores||[]; for(const cod in S.metaColab){ const p=S.metaColab[cod]; let k=c.colaboradores.find(x=>String(x.cod)===cod); if(!k){ k={cod,nome:p.nome,ativo:true}; c.colaboradores.push(k) } if(p.lider){ k.lider=p.lider; k.lideres=p.lideres } } }
+    const b=e.currentTarget; b.disabled=true; b.textContent='Salvando…';
+    try{ await Store.salvarCfg(c); S.cfgs[S.posto]=c; _cm.clear(); ED=null; S.metaPre=null; S.metaColab=null; S.metaTot=null; toast('Metas salvas'); vMetas() }catch{ b.disabled=false; b.textContent='Salvar metas'; toast('Não salvou. Confira a internet.') } };
+}
+
+/* ---------- v2.7: painel por líder, colaboradores da parcial, meta × vendas ---------- */
+const DASH_OPC=cfg=>[{k:'comb',n:'Combustíveis',un:'L'},{k:'dura',n:'Duramais',un:'%'},...cfg.categorias.map(c=>({k:c.id,n:c.nome,un:c.un})),{k:'mix',n:'Mix produtos',un:'R$'}];
+function valK(cfg,v,k){ if(k==='comb'||k==='mix') return somaG(cfg,v,k); if(k==='dura'){ const dm=cfg.duramais,a=v[dm?.comum]||0,b=v[dm?.dura]||0; return a+b?b/(a+b):0 } return v[k]||0 }
+function dashCols(){ try{ const a=JSON.parse(lsGet('dashCols')||'null'); if(Array.isArray(a)&&a.length) return a }catch{} return ['comb','dura'] }
+function baixarImgTab(box,o,nome){ fontes().then(()=>mostrarImagem(box,imgTabela(o.titulo,o.sub,o.cols,o.linhas),nome,'',emailDe(cfgDe(S.posto)))) }
+function dashCat(box,cfg){ const per=S.dashPer||'hoje', t=hoje(), de=per==='hoje'?t:per==='7'?addDias(t,-6):t.slice(0,8)+'01';
+  const ag=agregarLideres(cfg.codigo,de,t), opc=DASH_OPC(cfg), ks=dashCols(), sel=opc.filter(o=>ks.includes(o.k));
+  { const dH=S.dias[cfg.codigo+'_'+t], u=ultimo(dH); if(u&&u.tipo!=='fech'){ const fs=Object.values(fechPorTurno(dH)).filter(p=>p.h<=u.h).sort((a,b)=>a.h<b.h?-1:1), pv=fs[fs.length-1];
+    const ini=pv?fimFech(cfg,pv.turno):0, fim=hmin(u.h), vu=calc(cfg,u.itens).v, va=pv?calc(cfg,pv.itens).v:zeros(cfg), L=u.lider||{id:'',nome:'Sem líder'}, k=L.id||'_';
+    const a=ag[k]=ag[k]||{nome:L.nome,v:zeros(cfg),m:zeros(cfg),n:0}; cfg.categorias.forEach(c=>{ a.v[c.id]+=vu[c.id]-va[c.id]; a.m[c.id]+=c.meta*Math.max(0,share(cfg.codigo,c.id,fim)-share(cfg.codigo,c.id,ini)) }); a.and=u.h } }
+  const ids=[...new Set([...(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>l.id),...Object.keys(ag)])];
+  const nomeL=id=>(cfg.lideres||[]).find(l=>l.id===id)?.nome||ag[id]?.nome||'Sem líder';
+  const tot={v:zeros(cfg),m:zeros(cfg)}; ids.forEach(id=>{ const a=ag[id]; if(a) cfg.categorias.forEach(c=>{tot.v[c.id]+=a.v[c.id];tot.m[c.id]+=a.m[c.id]}) });
+  const cel=(a,o)=>{ if(!a) return ['–','','']; const r=valK(cfg,a.v,o.k); if(o.un==='%') return [fmtN(r*100,2)+'%','','']; const m=valK(cfg,a.m,o.k); return [fmtUc(r,o.un),m?fmtP(r/m)+' da meta':'',m?corP(r/m):''] };
+  const k0=sel[0]?.k||'comb'; const linhas=ids.map(id=>({n:nomeL(id),a:ag[id]})).sort((x,y)=>(y.a?valK(cfg,y.a.v,k0):-1)-(x.a?valK(cfg,x.a.v,k0):-1));
+  const rotP=per==='hoje'?'Hoje':per==='7'?'Últimos 7 dias':'Este mês';
+  S._imgLid={titulo:'Por líder – '+cfg.nome,sub:rotP+' · '+nomePer(de,t),cols:[{t:'Líder',w:300},...sel.map(o=>({t:o.n+(o.un==='%'?'':' ('+o.un+')'),w:230}))],
+    linhas:[...linhas.map(x=>({cel:[x.n,...sel.map(o=>cel(x.a,o))]})),{tipo:'tot',cel:['Posto',...sel.map(o=>cel(tot,o)[0])]}]};
+  box.innerHTML=`<div class="card" style="padding:8px 6px"><h3 style="margin:2px 6px 6px">Totais por líder · ${rotP}</h3>${sel.length?`<div class="scroll"><table class="t"><thead><tr><th>Líder</th>${sel.map(o=>`<th>${esc(o.n)}${o.un==='%'?'':' ('+o.un+')'}</th>`).join('')}</tr></thead><tbody>
+    ${linhas.map(x=>`<tr><td>${esc(x.n)}<span class="p muted">${x.a?[x.a.n?x.a.n+(x.a.n>1?' turnos fechados':' turno fechado'):'',x.a.and?'em andamento até '+x.a.and:''].filter(Boolean).join(' + '):'sem turno'}</span></td>${sel.map(o=>{const c=cel(x.a,o);return `<td>${c[0]}${c[1]?`<span class="p" style="color:${c[2]}">${c[1]}</span>`:''}</td>`}).join('')}</tr>`).join('')}
+    <tr><td><b>Posto</b></td>${sel.map(o=>`<td><b>${cel(tot,o)[0]}</b></td>`).join('')}</tr></tbody></table></div>`:'<p class="small muted" style="margin:6px">Escolha ao menos uma categoria.</p>'}
+    <details class="noprint" style="margin:6px"><summary class="small">Incluir ou tirar categorias deste painel</summary><div class="cks">${opc.map(o=>`<label class="ck"><input type="checkbox" data-dc="${o.k}" ${ks.includes(o.k)?'checked':''}>${esc(o.n)}</label>`).join('')}</div></details>
+    <div class="row noprint" style="margin:6px"><button class="btn alt sm" id="dcImg">Salvar imagem</button><button class="btn alt sm" id="dcPrint">Imprimir</button></div><div id="dcImgBox"></div>
+    <p class="small muted" style="margin:6px">Soma os turnos fechados de cada líder e, hoje, o turno em andamento até a última parcial. Duramais = Dura Mais ÷ (gasolina comum + Dura Mais).</p></div>`;
+  $$('[data-dc]',box).forEach(i=>i.onchange=()=>{ lsSet('dashCols',JSON.stringify($$('[data-dc]',box).filter(x=>x.checked).map(x=>x.dataset.dc))); dashCat(box,cfg) });
+  $('#dcImg',box).onclick=()=>baixarImgTab($('#dcImgBox',box),S._imgLid,`lideres_${cfg.codigo}_${t}.png`);
+  $('#dcPrint',box).onclick=()=>window.print();
+}
+function metaCol(cfg,vd,mes,key,k){ const x=cfg.metasMes?.[mes]?.col?.[vd]; const dt=diasTrab(cfg,vd,mes,k);
+  if(key==='comb') return x&&x.c!=null&&x.c!==''?+x.c:(k?.metaComb?k.metaComb*dt:0);
+  if(key==='mix'){ if(x){ const s=['lub','adt','car','arla','pec'].reduce((a,q)=>a+(+x[q]||0),0); if(s) return s; if(x.m) return +x.m } return k?.metaMix?k.metaMix*dt:0 }
+  return x&&x[key]!=null?+x[key]||0:0 }
+function diasTrab(cfg,vd,mes,k){ const x=cfg.metasMes?.[mes]?.col?.[vd]; return x?.dias?+x.dias:diasMes(k||{},mes) }
+function lideresDe(cfg,k){ const ids=[k?.lider,...(k?.lideres||[])].filter(Boolean); return [...new Set(ids)].map(id=>(cfg.lideres||[]).find(l=>l.id===id)?.nome).filter(Boolean) }
+function colabParcial(box,cfg,data,h){ const dv=S.vend[cfg.codigo+'_'+data]; const ps=parciaisOrd(dv).filter(p=>p.h<=h); const p=ps[ps.length-1];
+  if(!p){ box.innerHTML='<div class="card vazio small">Para ver os colaboradores desta parcial, envie também o relatório de vendedores do mesmo horário.</div>'; return }
+  const fim=(p.tipo==='fech'&&p.turno===cfg.fechamentos.length-1)?1440:hmin(p.h), pv=porVend(cfg,p.itens), m0=data.slice(0,8)+'01', mes=data.slice(0,7), ant=data>m0?colabAgg(cfg,m0,addDias(data,-1)):{};
+  const projD=(v,g)=>grupo(cfg,g).reduce((a,c)=>{ const sh=fim>=1440?1:share(cfg.codigo,c.id,fim); return a+(sh>0.05?(v[c.id]||0)/sh:(v[c.id]||0)) },0);
+  const L=Object.keys(pv).map(vd=>{ const k=colab(cfg,vd), v=pv[vd], a=ant[vd], r={vd,nome:nomeVend(cfg,vd,dv)}, dt=diasTrab(cfg,vd,mes,k), feitos=(a?a.dias:0)+1;
+    for(const g of ['comb','mix']){ const dia=somaG(cfg,v,g), pd=projD(v,g), acA=a?somaG(cfg,a.v,g):0, med=a&&a.dias?acA/a.dias:pd, mm=metaCol(cfg,vd,mes,g,k);
+      const rT=Math.max(0,Math.min(dt-feitos,Math.round((nDias(data,fimMes(data))-1)*dt/nDias(m0,fimMes(data)))));
+      r[g]={dia,pd,mAc:acA+dia,pm:acA+pd+med*rT,mm,md:mm&&dt?mm/dt:0} } return r }).sort((x,y)=>y.comb.dia-x.comb.dia);
+  const c1=(x,un)=>`<td>${fmtUc(x.dia,un)}<span class="p" style="color:${x.md?corP(x.pd/x.md):'var(--muted)'}">proj. ${fmtUc(x.pd,un)}${x.md?' · meta '+fmtUc(x.md,un):''}</span></td>`;
+  const c2=(x,un)=>`<td>${fmtUc(x.mAc,un)}<span class="p" style="color:${x.mm?corP(x.pm/x.mm):'var(--muted)'}">proj. ${fmtUc(x.pm,un)}${x.mm?' · '+fmtP(x.pm/x.mm)+' da meta':''}</span></td>`;
+  S._imgCol={titulo:'Colaboradores – '+cfg.nome,sub:`${dataBR(data)} até ${p.h} · dia e mês com projeção`,cols:[{t:'Colaborador',w:300},{t:'Comb. dia (L)',w:200},{t:'Comb. mês (L)',w:220},{t:'Mix dia (R$)',w:200},{t:'Mix mês (R$)',w:220}],
+    linhas:L.map(r=>({cel:[r.nome.split(' ').slice(0,2).join(' '),[fmtUc(r.comb.dia,'L'),'proj. '+fmtUc(r.comb.pd,'L'),r.comb.md?corP(r.comb.pd/r.comb.md):''],[fmtUc(r.comb.mAc,'L'),'proj. '+fmtUc(r.comb.pm,'L'),r.comb.mm?corP(r.comb.pm/r.comb.mm):''],[fmtUc(r.mix.dia,'R$'),'proj. '+fmtUc(r.mix.pd,'R$'),r.mix.md?corP(r.mix.pd/r.mix.md):''],[fmtUc(r.mix.mAc,'R$'),'proj. '+fmtUc(r.mix.pm,'R$'),r.mix.mm?corP(r.mix.pm/r.mix.mm):'']]}))};
+  box.innerHTML=`<div class="card" style="padding:8px 6px"><p class="small muted" style="margin:2px 6px 6px">Relatório de vendedores das ${p.h}. Projeção do dia pelo ritmo do posto; do mês pela média de cada um nos dias trabalhados.</p><div class="scroll"><table class="t"><thead><tr><th>Colaborador</th><th>Comb. dia</th><th>Comb. mês</th><th>Mix dia</th><th>Mix mês</th></tr></thead><tbody>
+    ${L.map(r=>`<tr><td>${esc(r.nome.split(' ').slice(0,2).join(' '))}<span class="p muted">${esc(lideresDe(cfg,colab(cfg,r.vd)).join(' / '))}</span></td>${c1(r.comb,'L')}${c2(r.comb,'L')}${c1(r.mix,'R$')}${c2(r.mix,'R$')}</tr>`).join('')}</tbody></table></div>
+    <div class="row noprint" style="margin:6px"><button class="btn alt sm" id="cpImg">Salvar imagem</button></div><div id="cpImgBox"></div></div>`;
+  $('#cpImg',box).onclick=()=>baixarImgTab($('#cpImgBox',box),S._imgCol,`colaboradores_${cfg.codigo}_${data}_${p.h.replace(':','')}.png`);
+}
+function listaMV(box,cfg){ const F=S.mvF=S.mvF||{q:'',lid:'',k:'comb',fn:''}; const t=hoje(), m0=t.slice(0,8)+'01', mes=t.slice(0,7), ag=colabAgg(cfg,m0,t);
+  const opc=[{k:'comb',n:'Combustíveis',un:'L'},{k:'mix',n:'Mix produtos',un:'R$'},...grupo(cfg,'mix').map(c=>({k:c.id,n:c.nome,un:c.un}))]; const o=opc.find(x=>x.k===F.k)||opc[0];
+  const vds=[...new Set([...(cfg.colaboradores||[]).filter(k=>k.ativo!==false).map(k=>String(k.cod)),...Object.keys(ag)])];
+  let L=vds.map(vd=>{ const k=colab(cfg,vd), a=ag[vd], nome=k?.nome||a?.nome||nomeVend(cfg,vd,null), r=a?valK(cfg,a.v,o.k):0, m=metaCol(cfg,vd,mes,o.k,k), dt=diasTrab(cfg,vd,mes,k), pm=a&&a.dias?r+r/a.dias*Math.max(0,Math.min(dt-a.dias,Math.round((nDias(t,fimMes(t))-1)*dt/nDias(m0,fimMes(t))))):r;
+    return {vd,k,nome,r,m,pm,lids:lideresDe(cfg,k),fn:k?.funcao||''} });
+  const q=semAc(F.q); L=L.filter(x=>(!q||semAc(x.nome).includes(q)||x.vd.includes(q))&&(!F.lid||[x.k?.lider,...(x.k?.lideres||[])].includes(F.lid))&&(!F.fn||x.fn===F.fn));
+  L.sort((a,b)=>(b.m?b.r/b.m:-1)-(a.m?a.r/a.m:-1)||b.r-a.r);
+  const fns=[...new Set((cfg.colaboradores||[]).map(k=>k.funcao).filter(Boolean))];
+  S._imgMV={titulo:'Meta × vendas – '+cfg.nome,sub:`${o.n} · ${nomePer(m0,t)}`,cols:[{t:'Colaborador',w:300},{t:'Meta mês',w:190},{t:'Vendido',w:190},{t:'Falta',w:190},{t:'Projeção',w:200}],
+    linhas:L.map(x=>({cel:[x.nome.split(' ').slice(0,2).join(' '),x.m?fmtUc(x.m,o.un):'–',[fmtUc(x.r,o.un),x.m?fmtP(x.r/x.m):'',x.m?corP(x.r/x.m):''],x.m?(x.m>x.r?fmtUc(x.m-x.r,o.un):'bateu ✓'):'–',[fmtUc(x.pm,o.un),x.m?fmtP(x.pm/x.m):'',x.m?corP(x.pm/x.m):'']]}))};
+  box.innerHTML=`<div class="card" style="padding:8px 6px"><div class="grid2 noprint" style="margin:2px 6px 6px"><label class="f">Buscar nome ou código<input id="mvQ" value="${esc(F.q)}"></label><label class="f">Categoria<select id="mvK">${opc.map(x=>`<option value="${x.k}" ${x===o?'selected':''}>${esc(x.n)}</option>`).join('')}</select></label>
+    <label class="f">Líder<select id="mvL"><option value="">Todos</option>${(cfg.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<option value="${l.id}" ${F.lid===l.id?'selected':''}>${esc(l.nome)}</option>`).join('')}</select></label><label class="f">Função<select id="mvF"><option value="">Todas</option>${fns.map(f=>`<option ${F.fn===f?'selected':''}>${esc(f)}</option>`).join('')}</select></label></div>
+    ${L.length?`<div class="scroll"><table class="t"><thead><tr><th>Colaborador</th><th>Meta do mês</th><th>Vendido</th><th>Falta</th><th>Projeção</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.nome.split(' ').slice(0,2).join(' '))}<span class="p muted">${esc([x.fn,x.lids.join(' / ')].filter(Boolean).join(' · '))}</span></td><td>${x.m?fmtUc(x.m,o.un):'–'}</td><td>${celDM(x.r,x.m,o.un)}</td><td>${x.m?(x.m>x.r?`<span class="neg">${fmtUc(x.m-x.r,o.un)}</span>`:'<span class="pos">bateu ✓</span>'):'–'}</td><td>${celDM(x.pm,x.m,o.un)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="small muted" style="margin:6px">Ninguém com esse filtro.</p>'}
+    <div class="row noprint" style="margin:6px"><button class="btn alt sm" id="mvImg">Salvar imagem</button><button class="btn alt sm" id="mvPrint">Imprimir</button></div><div id="mvImgBox"></div>
+    <p class="small muted" style="margin:6px">Meta do mês vem da aba Metas (planilha do gerente). Projeção = vendido + média por dia trabalhado × dias de trabalho que ainda faltam no mês.</p></div>`;
+  const re=()=>listaMV(box,cfg); $('#mvQ',box).oninput=e=>{ F.q=e.target.value; clearTimeout(S._mvT); S._mvT=setTimeout(()=>{re(); const i=$('#mvQ',box); if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},350) };
+  $('#mvK',box).onchange=e=>{F.k=e.target.value;re()}; $('#mvL',box).onchange=e=>{F.lid=e.target.value;re()}; $('#mvF',box).onchange=e=>{F.fn=e.target.value;re()};
+  $('#mvImg',box).onclick=()=>baixarImgTab($('#mvImgBox',box),S._imgMV,`meta_vendas_${cfg.codigo}_${t}.png`); $('#mvPrint',box).onclick=()=>window.print();
+}
+
+/* ---------- v2.7: planilha de metas do gerente ---------- */
+const MET_K=[['c','COMBUSTÍVEL','L',/COMBUST/],['lub','LUBRIFICANTES','R$',/LUBRIF/],['adt','ADITIVOS','R$',/ADITIV/],['car','CAR CARE','R$',/CAR\s*CARE/],['arla','ARLA','R$',/ARLA/],['pec','PEÇAS E ACESSÓRIOS','R$',/PECAS|ACESS|ASSESS/]];
+const MESES_PT=['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+const semAc=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+function mesDaAba(nome){ const n=semAc(nome); const i=MESES_PT.findIndex(m=>n.includes(semAc(m))); const a=n.match(/20\d\d/); return i>=0&&a?`${a[0]}-${pad(i+1)}`:null }
+function lerAbaMetas(ws){ const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true}); let hi=-1;
+  for(let i=0;i<rows.length&&i<40;i++){ const r=rows[i].map(semAc); if(r.includes('COD')&&r.includes('NOME')){hi=i;break} }
+  if(hi<0) throw new Error('Não achei nesta aba a linha de títulos com COD e NOME.');
+  const H=rows[hi].map(semAc), cCod=H.indexOf('COD'), cNome=H.indexOf('NOME'), cols={};
+  MET_K.forEach(([k,,,re])=>{ const i=H.findIndex(x=>x.startsWith('META')&&re.test(x)); if(i>=0) cols[k]=i });
+  const cLid=H.findIndex(x=>/^LIDER( PRINCIPAL| DO COLABORADOR)?$/.test(x)), cLids=H.findIndex(x=>/CHEFE|LIDERES/.test(x)), cDias=H.findIndex(x=>/DIAS/.test(x));
+  const col={}; let tot=null;
+  for(let i=hi+1;i<rows.length;i++){ const r=rows[i], txt=r.map(semAc).join(' ');
+    if(/VALOR ESTABELECIDO/.test(txt)){ tot={}; for(const k in cols) tot[k]=numBR(r[cols[k]]); continue }
+    const cod=String(r[cCod]??'').trim().replace(/\.0+$/,''); if(!/^\d+$/.test(cod)) continue;
+    const x={nome:String(r[cNome]||'').trim()}; for(const k in cols){ const v=r[cols[k]]; if(v!==''&&v!=null) x[k]=numBR(v) }
+    if(cLid>=0) x.lidPri=String(r[cLid]||'').trim(); if(cLids>=0) x.lidTxt=String(r[cLids]||'').trim(); if(cDias>=0&&r[cDias]!==''&&r[cDias]!=null) x.dias=numBR(r[cDias]); col[cod]=x }
+  if(!tot) for(let i=Math.max(0,hi-4);i<hi;i++){ const r=rows[i].map(semAc), nx=rows[i+1]; if(nx&&MET_K.some(([,,,re])=>r.some(x=>re.test(x)&&!x.startsWith('META')))){ tot={}; MET_K.forEach(([k,,,re])=>{ const j=r.findIndex(x=>re.test(x)); if(j>=0&&numBR(nx[j])) tot[k]=numBR(nx[j]) }); break } }
+  if(!tot){ tot={}; for(const k in cols) tot[k]=Object.values(col).reduce((a,x)=>a+(x[k]||0),0) }
+  if(!Object.keys(cols).length) throw new Error('Não achei colunas de meta (META COMBUSTÍVEL, META LUBRIFICANTES…) nesta aba.');
+  return {col,tot,cols:Object.keys(cols)} }
+function acharLideres(cfg,txt){ const L=(cfg.lideres||[]).filter(l=>l.ativo!==false); const ids=[];
+  String(txt||'').split(/[\/,;+]|\sE\s/i).map(semAc).filter(Boolean).forEach(s=>{ const p=s.split(' ')[0]; const l=L.find(l=>semAc(l.nome).split(' ')[0]===p)||L.find(l=>semAc(l.nome).startsWith(s)); if(l&&!ids.includes(l.id)) ids.push(l.id) }); return ids }
+function catDeTotais(cfg,mes,tot){ const nd=nDias(mes+'-01',fimMes(mes+'-01')), cm=cfgMes(cfg,mes+'-01'), cat={}; cm.categorias.forEach(c=>cat[c.id]=c.meta);
+  if(tot.c){ const fs=grupo(cm,'comb'), s=fs.reduce((a,c)=>a+c.meta,0)||1; fs.forEach(c=>cat[c.id]=Math.round(tot.c*(c.meta/s)/nd*100)/100) }
+  ['lub','adt','car','arla','pec'].forEach(k=>{ if(tot[k]!=null&&cm.categorias.some(c=>c.id===k)) cat[k]=Math.round(tot[k]/nd*100)/100 }); return cat }
+function totaisDeCat(cfg,cat,mes){ const nd=nDias(mes+'-01',fimMes(mes+'-01')), o={}; o.c=Math.round(grupo(cfg,'comb').reduce((a,c)=>a+(+cat[c.id]||0),0)*nd); ['lub','adt','car','arla','pec'].forEach(k=>o[k]=Math.round((+cat[k]||0)*nd)); return o }
+async function importarMetas(cfg,f){ if(!(await garantirLib('xlsx'))) throw new Error('O leitor de planilha não carregou. Confira a internet.');
+  const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'}); return wb }
+function aplicarAba(cfg,wb,aba){ const R=lerAbaMetas(wb.Sheets[aba]); const mes=mesDaAba(aba)||S.metaMesEd||hoje().slice(0,7);
+  const o={cat:catDeTotais(cfg,mes,R.tot),lid:JSON.parse(JSON.stringify(cfg.metasMes?.[mes]?.lid||{})),col:{}}, kc={};
+  for(const cod in R.col){ const x=R.col[cod], y={}; MET_K.forEach(([k])=>{ if(x[k]!=null) y[k]=x[k] }); if(x.dias) y.dias=x.dias; y.m=['lub','adt','car','arla','pec'].reduce((a,k)=>a+(+y[k]||0),0); o.col[cod]=y;
+    const ids=acharLideres(cfg,[x.lidPri,x.lidTxt].filter(Boolean).join('/')); kc[cod]={nome:x.nome,lider:ids[0]||'',lideres:ids} }
+  S.metaMesEd=mes; S.metaPre=o; S.metaColab=kc; S.metaTot=R.tot; return {mes,n:Object.keys(R.col).length,cols:R.cols} }
+function lerFormCol(el){ const o={}; $$('[data-mv]',el).forEach(i=>{ const x=o[i.dataset.mv]=o[i.dataset.mv]||{}; if(i.value.trim()!=='') x[i.dataset.k]=numBR(i.value) }); return o }
+async function baixarAbaMetas(cfg,mes,cat,col){ if(!(await garantirLib('xlsx'))) return toast('O leitor de planilha não carregou. Confira a internet.');
+  const tot=totaisDeCat(cfg,cat,mes), nomeM=MESES_PT[+mes.slice(5)-1], aba=nomeM+'-'+mes.slice(0,4);
+  const K=[...new Set([...(cfg.colaboradores||[]).filter(k=>k.ativo!==false).map(k=>String(k.cod)),...Object.keys(col)])];
+  const aoa=[['','','POSTO '+String(cfg.nome).toUpperCase()],['','','METAS '+nomeM+' '+mes.slice(0,4)],[],['','','',...MET_K.map(x=>x[1])],['','','',...MET_K.map(x=>tot[x[0]]||0)],
+    ['POSTO','COD','NOME',...MET_K.map(x=>'META '+(x[0]==='c'?'COMBUSTÍVEL':x[1])),'LÍDER','LÍDERES NO DIA','DIAS TRAB']];
+  K.forEach(cod=>{ const k=colab(cfg,cod)||{}, x=col[cod]||{}, ls=lideresDe(cfg,k); aoa.push([+cfg.codigo||cfg.codigo,+cod,k.nome||x.nome||'',...MET_K.map(q=>+x[q[0]]||0),ls[0]||'',ls.join('/'),x.dias||diasMes(k,mes)]) });
+  const r1=7, rN=6+K.length; aoa.push(['','','VALOR TOTAL DA META DISTRIBUIDA',...MET_K.map(()=>0)]); aoa.push(['','','VALOR ESTABELECIDO',...MET_K.map(x=>tot[x[0]]||0)]);
+  const ws=XLSX.utils.aoa_to_sheet(aoa); MET_K.forEach((x,i)=>{ const L=XLSX.utils.encode_col(3+i); ws[L+(rN+1)]={t:'n',f:`SUM(${L}${r1}:${L}${rN})/${L}${rN+2}`,z:'0%'} });
+  ws['!cols']=[{wch:7},{wch:8},{wch:36},...MET_K.map(()=>({wch:16})),{wch:14},{wch:20},{wch:10}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,aba); XLSX.writeFile(wb,`${cfg.codigo} METAS ${nomeM} ${mes.slice(0,4)} - ${cfg.nome}.xlsx`) }
+function blocoPlanilha(cfg,mes,m){ const url=cfg.planilhaMetas||'', ok=/^https:\/\//i.test(url);
+  const K=[...new Set([...(cfg.colaboradores||[]).filter(k=>k.ativo!==false).map(k=>String(k.cod)),...Object.keys(m.col||{})])].sort((a,b)=>(colab(cfg,a)?.nome||m.col?.[a]?.nome||'').localeCompare(colab(cfg,b)?.nome||''));
+  const inp=(cod,k,v,d)=>`<td><input data-mv="${cod}" data-k="${k}" inputmode="decimal" style="width:92px" value="${v!=null&&v!==''?fmtN(v,d):''}"></td>`;
+  const pend=S.metaColab||{};
+  const linhas=K.map(cod=>{ const k=colab(cfg,cod)||{}, x=m.col?.[cod]||{}, p=pend[cod]; const nome=(k.nome||p?.nome||cod); const ls=p?p.lideres.map(id=>(cfg.lideres||[]).find(l=>l.id===id)?.nome).filter(Boolean):lideresDe(cfg,k);
+    return `<tr><td style="min-width:150px">${esc(nome.split(' ').slice(0,2).join(' '))}<span class="p muted">${esc(cod)}${ls.length?' · '+esc(ls.join(' / ')):''}</span></td>${inp(cod,'c',x.c,0)}${['lub','adt','car','arla','pec'].map(q=>inp(cod,q,x[q],0)).join('')}${inp(cod,'dias',x.dias||diasMes(k,mes),0)}</tr>` }).join('');
+  const soma=q=>K.reduce((a,cod)=>a+(+m.col?.[cod]?.[q]||0),0), tot=S.metaTot||totaisDeCat(cfg,m.cat||{},mes);
+  return `<div class="cat"><b>Planilha de metas do gerente</b>
+    <label class="f">Link da planilha online (OneDrive/SharePoint)<input id="mLink" value="${esc(url)}" placeholder="https://…"></label>
+    <div class="row"><button class="btn alt sm" id="mLinkSalvar">Salvar link</button>${ok?`<a class="btn alt sm" href="${esc(url)}" target="_blank" rel="noopener">Abrir planilha</a>`:''}</div>
+    <label class="f" style="margin-top:8px">Importar metas da planilha (.xlsx)<input type="file" id="mArq" accept=".xlsx,.xls"></label><div id="mAbas"></div>
+    <p class="small muted">Na planilha online: Arquivo › Criar uma cópia › Baixar uma cópia. Anexe aqui e escolha a aba do mês. O app acha as colunas pelo título (META COMBUSTÍVEL, META LUBRIFICANTES, CHEFE DE PISTA, LÍDER, DIAS TRAB…), então pode trocar a ordem e incluir colunas ou linhas.</p>
+    <div class="row"><button class="btn alt sm" id="mProx">Criar mês seguinte</button><button class="btn alt sm" id="mBaixar">Baixar aba deste mês (.xlsx)</button></div></div>
+    <div class="small muted" style="margin:8px 0 4px">Vendedores: meta do mês por categoria (combustível em litros, demais em R$)</div>
+    ${K.length?`<div class="scroll"><table class="t small"><thead><tr><th>Colaborador</th><th>Comb. (L)</th><th>Lubrif.</th><th>Aditivo</th><th>Car Care</th><th>Arla</th><th>Peças</th><th>Dias</th></tr></thead><tbody>${linhas}
+    <tr><td><b>Distribuído</b></td>${['c','lub','adt','car','arla','pec'].map(q=>{ const s=soma(q), t=tot[q]||0; return `<td><b>${fmtN(s,0)}</b><span class="p" style="color:${t&&Math.abs(s-t)<1?'var(--ok)':'var(--orange)'}">${t?fmtP(s/t)+' de '+fmtN(t,0):''}</span></td>` }).join('')}<td></td></tr></tbody></table></div>`:'<p class="small muted">Sem colaboradores. Importe a planilha ou envie o relatório de vendedores.</p>'}` }
+function ligarPlanilha(el,cfg){ const mes=()=>$('#mMes').value;
+  $('#mLinkSalvar').onclick=async()=>{ const u=$('#mLink').value.trim(); if(u&&!/^https:\/\//i.test(u)) return toast('O link precisa começar com https://'); const c=JSON.parse(JSON.stringify(S.cfgs[S.posto])); c.planilhaMetas=u;
+    try{ await Store.salvarCfg(c); S.cfgs[S.posto]=c; _cm.clear(); ED=null; toast('Link salvo'); vMetas() }catch{ toast('Não salvou. Confira a internet.') } };
+  $('#mArq').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const wb=await importarMetas(cfg,f); S._wbMetas=wb; const abas=wb.SheetNames, mz=$('#mMes').value, pref=abas.find(a=>mesDaAba(a)===mz)||abas.filter(a=>mesDaAba(a)).sort((x,y)=>mesDaAba(x)<mesDaAba(y)?-1:1).pop()||abas[0];
+      $('#mAbas').innerHTML=`<div class="row" style="align-items:flex-end"><label class="f" style="margin:0">Aba<select id="mAba">${abas.map(a=>`<option ${a===pref?'selected':''}>${esc(a)}</option>`).join('')}</select></label><button class="btn sm" id="mAbaOk">Usar esta aba</button></div>`;
+      $('#mAbaOk').onclick=()=>{ try{ const r=aplicarAba(cfg,S._wbMetas,$('#mAba').value); toast(`${r.n} colaboradores lidos para ${r.mes.slice(5)}/${r.mes.slice(0,4)}. Confira e salve.`); vMetas() }catch(err){ toast(err.message) } } }catch(err){ toast(err.message||'Não consegui ler a planilha') } };
+  $('#mBaixar').onclick=()=>{ const cat={}; $$('[data-mc]',el).forEach(i=>cat[i.dataset.mc]=numBR(i.value)); baixarAbaMetas(cfg,mes(),cat,lerFormCol(el)) };
+  $('#mProx').onclick=async()=>{ const base=lerFormCol(el), m0=mes(), d=new Date(+m0.slice(0,4),+m0.slice(5,7),1), prox=`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    const soma=q=>Object.values(base).reduce((a,x)=>a+(+x[q]||0),0); if(!MET_K.some(([k])=>soma(k))) return toast('Este mês ainda não tem metas por colaborador para usar como base.');
+    const r=await dialogo(`<h3>Metas de ${MESES_PT[d.getMonth()].toLowerCase()} de ${d.getFullYear()}</h3><p class="small">Digite o total do mês de cada categoria. O app divide entre os colaboradores na mesma porcentagem de ${m0.slice(5)}/${m0.slice(0,4)}. Depois você ajusta quem precisar.</p>
+      <div class="grid2">${MET_K.map(([k,n,un])=>`<label class="f">${n} (${un==='L'?'litros':'R$'})<input data-pt="${k}" inputmode="decimal" value="${soma(k)?fmtN(soma(k),0):''}"></label>`).join('')}</div>`,[{t:'Cancelar',cls:'alt',v:null},{t:'Distribuir',ler:dd=>{const o={};$$('[data-pt]',dd).forEach(i=>o[i.dataset.pt]=numBR(i.value));return o}}]);
+    if(!r) return; const col={};
+    for(const cod in base){ const x=base[cod], y={}; MET_K.forEach(([k])=>{ const s=soma(k); if(s&&r[k]) y[k]=Math.round(r[k]*((+x[k]||0)/s)) }); const kk=colab(cfg,cod); y.dias=diasMes(kk||{},prox); y.m=['lub','adt','car','arla','pec'].reduce((a,k)=>a+(+y[k]||0),0); col[cod]=y }
+    S.metaMesEd=prox; S.metaPre={cat:catDeTotais(cfg,prox,r),lid:JSON.parse(JSON.stringify(cfg.metasMes?.[m0]?.lid||{})),col}; S.metaTot=r; S.metaColab=null; vMetas(); toast('Distribuído. Ajuste quem precisar e toque em Salvar.') };
 }
 
 /* ---------- enviar ---------- */
@@ -824,7 +977,7 @@ async function vAjustes(){ const el=$('#v-ajustes'); const ro=!S.canEdit;
   ${(ED.colaboradores||[]).map((k,i)=>`<details class="cat"><summary><span>${esc(k.nome)} <span class="muted small">${esc(k.cod)}</span></span><span class="muted small">${esc(k.funcao||'sem função')} ${k.ini?esc(k.ini+'–'+k.fim):''}${k.escala?(k.escala==='par'?' · dias pares':' · dias ímpares'):''}</span></summary>
    <div class="grid2" style="margin-top:10px"><label class="f">Nome<input data-kn="${i}" value="${esc(k.nome)}" ${dis}></label><label class="f">Função<select data-kf="${i}" ${dis}><option value="">—</option>${FUNCOES.map(f=>`<option ${k.funcao===f?'selected':''}>${f}</option>`).join('')}</select></label>
    <label class="f">Entrada<input type="time" data-ki="${i}" value="${esc(k.ini||'')}" ${dis}></label><label class="f">Saída<input type="time" data-ko="${i}" value="${esc(k.fim||'')}" ${dis}></label><label class="f">Meta comb. (L por dia)<input data-kmc="${i}" inputmode="decimal" value="${k.metaComb?fmtN(k.metaComb,0):''}" ${dis}></label><label class="f">Meta mix (R$ por dia)<input data-kmm="${i}" inputmode="decimal" value="${k.metaMix?fmtN(k.metaMix,2):''}" ${dis}></label></div>
-   <label class="f">Líder<select data-kl="${i}" ${dis}>${lidOpt(k.lider)}</select></label><label class="f">Escala<select data-ke="${i}" ${dis}>${[['','Todos os dias'],['par','Dias pares'],['impar','Dias ímpares']].map(([v,t])=>`<option value="${v}" ${(k.escala||'')===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="ck"><input type="checkbox" data-ka="${i}" ${k.ativo!==false?'checked':''} ${dis}> ativo</label></details>`).join('')}</div>`;
+   <label class="f">Líder a quem pertence<select data-kl="${i}" ${dis}>${lidOpt(k.lider)}</select></label><div class="small muted" style="margin:4px 0 2px">Também trabalha com (líderes do mesmo dia, ex.: 10h–22h começa com um e termina com outro)</div><div class="cks">${(ED.lideres||[]).filter(l=>l.ativo!==false).map(l=>`<label class="ck"><input type="checkbox" data-klx="${i}" value="${l.id}" ${(k.lideres||[]).includes(l.id)?'checked':''} ${dis}>${esc(l.nome)}</label>`).join('')}</div><label class="f">Escala<select data-ke="${i}" ${dis}>${[['','Todos os dias'],['par','Dias pares'],['impar','Dias ímpares']].map(([v,t])=>`<option value="${v}" ${(k.escala||'')===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="ck"><input type="checkbox" data-ka="${i}" ${k.ativo!==false?'checked':''} ${dis}> ativo</label></details>`).join('')}</div>`;
   h+=`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Obrigações dos líderes</h3>${aplicar('obrigacoes')}</div><p class="small muted">Defina os dias e o horário limite. Em cada líder, marque quais ele cumpre. O líder confirma tocando no card dele no Início.</p>
   ${(ED.obrigacoes||[]).map((o,i)=>`<div class="cat"><div class="grid2"><label class="f">Nome<input data-on="${i}" value="${esc(o.nome)}" ${dis}></label><label class="f">Fazer até<input type="time" data-oh="${i}" value="${esc(o.hora||'')}" ${dis}></label></div><div class="cks">${NOMES_DIA.map((n,dd)=>`<label class="ck"><input type="checkbox" data-od="${i}" value="${dd}" ${(o.dias||[]).includes(dd)?'checked':''} ${dis}>${n.slice(0,3)}</label>`).join('')}</div>${ro?'':`<button class="btn danger sm" data-or="${i}">Remover</button>`}</div>`).join('')}
   ${ro?'':'<button class="btn alt sm" id="oMais">+ obrigação</button>'}</div>`;
@@ -855,7 +1008,7 @@ function lerCampos(el){ if(!ED) return; const v=s=>el.querySelector(s);
   if(v('#eMail')) ED.emailPista=v('#eMail').value.trim();
   if(v('#ePin')&&v('#ePin').value.trim()) ED._pinNovo=v('#ePin').value.trim(); if(v('#eTeams')&&v('#eTeams').value.trim()) ED._teamsNovo=v('#eTeams').value.trim();
   const K=ED.colaboradores||[]; $$('[data-kn]',el).forEach(i=>K[+i.dataset.kn].nome=i.value.trim()); $$('[data-kf]',el).forEach(i=>K[+i.dataset.kf].funcao=i.value);
-  $$('[data-ki]',el).forEach(i=>K[+i.dataset.ki].ini=i.value); $$('[data-ko]',el).forEach(i=>K[+i.dataset.ko].fim=i.value); $$('[data-kl]',el).forEach(i=>K[+i.dataset.kl].lider=i.value); $$('[data-ka]',el).forEach(i=>K[+i.dataset.ka].ativo=i.checked); $$('[data-ke]',el).forEach(i=>K[+i.dataset.ke].escala=i.value); $$('[data-kmc]',el).forEach(i=>K[+i.dataset.kmc].metaComb=numBR(i.value)); $$('[data-kmm]',el).forEach(i=>K[+i.dataset.kmm].metaMix=numBR(i.value));
+  $$('[data-ki]',el).forEach(i=>K[+i.dataset.ki].ini=i.value); $$('[data-ko]',el).forEach(i=>K[+i.dataset.ko].fim=i.value); $$('[data-kl]',el).forEach(i=>K[+i.dataset.kl].lider=i.value); K.forEach((k,i)=>{ if(el.querySelector(`[data-klx="${i}"]`)) k.lideres=$$(`[data-klx="${i}"]`,el).filter(x=>x.checked).map(x=>x.value) }); $$('[data-ka]',el).forEach(i=>K[+i.dataset.ka].ativo=i.checked); $$('[data-ke]',el).forEach(i=>K[+i.dataset.ke].escala=i.value); $$('[data-kmc]',el).forEach(i=>K[+i.dataset.kmc].metaComb=numBR(i.value)); $$('[data-kmm]',el).forEach(i=>K[+i.dataset.kmm].metaMix=numBR(i.value));
   $$('[data-leq]',el).forEach(i=>ED.lideres[+i.dataset.leq].equipe=i.value.trim());
   ED.lideres.forEach((l,li)=>{ if(el.querySelector(`[data-lob="${li}"]`)) l.obrig=$$(`[data-lob="${li}"]`,el).filter(x=>x.checked).map(x=>x.value) });
   $$('[data-on]',el).forEach(i=>ED.obrigacoes[+i.dataset.on].nome=i.value.trim());
@@ -939,10 +1092,11 @@ async function telaLogin(msg){ $('.tabs').style.display='none'; $('#selPosto').s
   let ps=[],primeiro=false; try{ SESS=null; [ps,primeiro]=await Promise.all([api('postos'),api('primeiroAcesso')]) }catch{ el.innerHTML='<div class="aviso bad">Sem conexão com o servidor. Confira a internet e recarregue.</div>'; return }
   el.innerHTML=`<div class="card" style="max-width:420px;margin:24px auto"><h3>Entrar</h3>${msg?`<div class="aviso bad">${esc(msg)}</div>`:''}
   ${ps.length?`<label class="f">Posto<select id="lgP">${ps.map(p=>`<option value="${esc(p.codigo)}">${esc(p.codigo+' - '+p.nome)}</option>`).join('')}</select></label><label class="f">PIN do posto<input id="lgPin" type="password" inputmode="numeric" autocomplete="current-password"></label><button class="btn orange" id="lgOk" style="width:100%">Entrar</button>`:'<p class="small muted">Nenhum posto com PIN ainda. O administrador entra abaixo, cadastra o posto e cria o PIN.</p>'}
-  <details style="margin-top:16px" ${ps.length?'':'open'}><summary class="small">Sou administrador</summary><label class="f" style="margin-top:8px">${primeiro?'Crie a senha do administrador (6 ou mais caracteres)':'Senha do administrador'}<input id="lgS" type="password" autocomplete="current-password"></label><button class="btn" id="lgAdm" style="width:100%">Entrar como administrador</button>${primeiro?'':'<button class="btn alt sm" id="lgEsq" style="margin-top:10px">Esqueci a senha</button>'}</details></div>`;
+  <details style="margin-top:16px" ${ps.length?'':'open'}><summary class="small">Sou administrador</summary><label class="f" style="margin-top:8px">${primeiro?'Crie a senha do administrador (6 ou mais caracteres)':'Senha do administrador'}<input id="lgS" type="password" autocomplete="current-password"></label><button class="btn" id="lgAdm" style="width:100%">Entrar como administrador</button></details>${primeiro?'':'<div class="row" style="justify-content:center;margin-top:14px"><button class="btn alt sm" id="lgEsq">Esqueci a senha do administrador</button><button class="btn alt sm" id="lgPinEsq">Esqueci o PIN do posto</button></div>'}</div>`;
   const ir=async(s,lembrar)=>{ SESS=s; try{ await api('login'); if(lembrar) lsSet('sess',JSON.stringify(s)); else { try{sessionStorage.setItem('parc-sess',JSON.stringify(s))}catch{} } $('.tabs').style.display=''; iniciar() }catch(e){ SESS=null; telaLogin(e.msg||'Não foi possível entrar.') } };
   const ok=$('#lgOk'); if(ok){ ok.onclick=()=>ir({authPosto:$('#lgP').value,pin:$('#lgPin').value},true); $('#lgPin').onkeydown=e=>{if(e.key==='Enter')ok.click()} }
   $('#lgAdm').onclick=()=>ir({senha:$('#lgS').value},false);
+  if($('#lgPinEsq')) $('#lgPinEsq').onclick=()=>dialogo('<h3>Esqueci o PIN</h3><p class="small">O PIN do posto é trocado pelo administrador em Ajustes › Dados do posto. Peça a ele um PIN novo.</p>',[{t:'Entendi',v:1}]);
   const es=$('#lgEsq'); if(es) es.onclick=async()=>{ es.disabled=true; try{ const para=await api('esqueciSenha');
     const r=await dialogo(`<h3>Redefinir a senha</h3><p class="small">Enviamos um código de 6 números para ${esc(para)}. Ele vale por 30 minutos.</p><label class="f">Código<input id="rC" inputmode="numeric" maxlength="6"></label><label class="f">Nova senha (6 ou mais caracteres)<input id="rS" type="password"></label><label class="f">Repita a nova senha<input id="rS2" type="password"></label>`,[{t:'Cancelar',cls:'alt',v:null},{t:'Redefinir',ler:d=>({c:$('#rC',d).value,s:$('#rS',d).value,s2:$('#rS2',d).value})}]);
     if(r){ if(r.s!==r.s2) toast('As duas senhas não são iguais. Peça outro código.'); else { await api('redefinirSenha',{codigo:r.c,nova:r.s}); toast('Senha redefinida. Entre com a nova senha.') } } }catch(e){ toast(e.msg||'Não foi possível. Confira a internet.') } es.disabled=false }; $('#lgS').onkeydown=e=>{if(e.key==='Enter')$('#lgAdm').click()} }
