@@ -244,7 +244,7 @@ function lerLinhasVend(linhas){ const R={fonte:'pdf',tipo:'vend',de:null,ate:nul
 
 </script>
 <script>
-const VERSAO='2.9.0';
+const VERSAO='2.9.1';
 /* ---------- utilidades ---------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1350,7 +1350,9 @@ async function iniciar(){
   if(window.API_URL){ usarServidor(); if(!SESS){ try{ SESS=JSON.parse(lsGet('sess')||sessionStorage.getItem('parc-sess')||'null') }catch{} } if(!SESS) return telaLogin(); }
   else if(window.claude&&typeof claude.use==='function'){
     try{ DB=await claude.use('db') }catch{} try{ USER=await claude.use('user') }catch{} try{ DL=await claude.use('downloads') }catch{} }
-  if(window.API_URL){ S.mode='api'; S.eu=await api('login').catch(()=>null); S.canEdit=!!SESS.senha||S.eu?.papel==='gerente'; } else if(DB){ S.mode='db'; try{ S.canEdit=USER?!!(await USER.canEdit()):false }catch{ S.canEdit=false } } else { S.mode='local'; S.canEdit=true }
+  if(window.API_URL){ S.mode='api'; S.eu=await api('login').catch(()=>new Promise(r=>setTimeout(r,2500)).then(()=>api('login'))).catch(e=>({erro:e}));
+    if(S.eu?.erro){ const e=S.eu.erro; S.eu=null; if(e.code==='auth'){ try{localStorage.removeItem('parc-sess');sessionStorage.removeItem('parc-sess')}catch{} return telaLogin(e.msg) } $('#subttl').textContent='Sem conexão com o servidor'; $('#v-inicio').classList.add('on'); $('#v-inicio').innerHTML='<div class="aviso bad">O servidor demorou para responder. Confira a internet e recarregue a página.</div>'; return }
+    S.canEdit=!!SESS.senha||S.eu?.papel==='gerente'; } else if(DB){ S.mode='db'; try{ S.canEdit=USER?!!(await USER.canEdit()):false }catch{ S.canEdit=false } } else { S.mode='local'; S.canEdit=true }
   try{ S.cfgs=await comTempo(Store.cfgs(),20000) }catch(e){ if(e.code==='auth'){ try{localStorage.removeItem('parc-sess');sessionStorage.removeItem('parc-sess')}catch{} return telaLogin(e.msg) } $('#subttl').textContent='Sem conexão com os dados'; }
   S.posto=SESS&&SESS.authPosto?String(SESS.authPosto):S.eu&&!S.eu.admin&&S.eu.posto?String(S.eu.posto):lsGet('posto'); preencherPostos(); rota();
   if(S.mode==='api'){ checarMsgs(true); clearInterval(S._msgT); S._msgT=setInterval(()=>checarMsgs(false),60000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checarMsgs(false) }) }
